@@ -38,36 +38,25 @@ export async function POST(request: Request) {
       }
     }
 
-    if (cachedContent) {
-      // Try to parse if it's a JSON string
-      let content = cachedContent;
-      try {
-        const parsed = JSON.parse(cachedContent);
-        if (parsed && typeof parsed.content === 'string') {
-          content = parsed.content;
+    let content;
+    if (cachedContent && typeof cachedContent === 'string') {
+      content = cachedContent;
+    } else {
+      // Generate new content if not cached or cache is invalid
+      content = await generateDetailedContent(topic, text);
+
+      // Update the topic document with the new content
+      for (const aspect of topicDoc.aspects) {
+        const thing = aspect.thingsToKnow.find(t => t.text === text);
+        if (thing) {
+          thing.markdownContent = content;
+          thing.lastUpdated = new Date();
+          break;
         }
-      } catch {
-        // Not JSON, use as is
       }
-      return new NextResponse(content, {
-        headers: { 'Content-Type': 'text/markdown' }
-      });
+
+      await topicDoc.save();
     }
-
-    // Generate new content if not cached
-    const content = await generateDetailedContent(topic, text);
-
-    // Update the topic document with the new content
-    for (const aspect of topicDoc.aspects) {
-      const thing = aspect.thingsToKnow.find(t => t.text === text);
-      if (thing) {
-        thing.markdownContent = content;
-        thing.lastUpdated = new Date();
-        break;
-      }
-    }
-
-    await topicDoc.save();
 
     return new NextResponse(content, {
       headers: { 'Content-Type': 'text/markdown' }

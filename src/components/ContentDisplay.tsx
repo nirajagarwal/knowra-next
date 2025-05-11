@@ -1,13 +1,25 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Box, Typography } from '@mui/material';
+import { ComponentPropsWithoutRef } from 'react';
 
 interface ContentDisplayProps {
   content: string;
 }
 
+interface CodeProps {
+  inline?: boolean;
+  children: React.ReactNode;
+}
+
 const ContentDisplay = ({ content }: ContentDisplayProps) => {
   if (!content) return null;
+
+  // Debug log
+  console.log('ContentDisplay received:', content);
+
+  // Clean up content if needed
+  const cleanContent = content.replace(/^```markdown\n?|\n?```$/g, '').trim();
 
   return (
     <Box sx={{ 
@@ -55,27 +67,60 @@ const ContentDisplay = ({ content }: ContentDisplayProps) => {
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
         components={{
-          h1: ({ node, ...props }) => <Typography variant="h5" component="h1" {...props} />,
-          h2: ({ node, ...props }) => <Typography variant="h6" component="h2" {...props} />,
-          h3: ({ node, ...props }) => <Typography variant="subtitle1" component="h3" {...props} />,
-          h4: ({ node, ...props }) => <Typography variant="subtitle2" component="h4" {...props} />,
-          h5: ({ node, ...props }) => <Typography variant="body1" component="h5" fontWeight="bold" {...props} />,
-          h6: ({ node, ...props }) => <Typography variant="body2" component="h6" fontWeight="bold" {...props} />,
-          p: ({ node, ...props }) => <Typography variant="body1" paragraph {...props} />,
-          li: ({ node, ...props }) => <Typography variant="body1" component="li" {...props} />,
-          code: ({ node, inline, ...props }) => (
+          h1: ({ children }) => <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>{children}</Typography>,
+          h2: ({ children }) => <Typography variant="subtitle1" sx={{ fontSize: '1.1rem' }}>{children}</Typography>,
+          h3: ({ children }) => <Typography variant="subtitle2" sx={{ fontSize: '1rem' }}>{children}</Typography>,
+          h4: ({ children }) => <Typography variant="body1" fontWeight="bold" sx={{ fontSize: '0.95rem' }}>{children}</Typography>,
+          h5: ({ children }) => <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.9rem' }}>{children}</Typography>,
+          h6: ({ children }) => <Typography variant="caption" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>{children}</Typography>,
+          p: ({ children }) => <Typography variant="body1" paragraph sx={{ fontSize: '0.95rem' }}>{children}</Typography>,
+          li: ({ children }) => <Typography variant="body1" component="li" sx={{ fontSize: '0.95rem' }}>{children}</Typography>,
+          code: ({ inline, children }: CodeProps) => (
             <Typography
               component={inline ? 'span' : 'pre'}
               sx={{
                 fontFamily: 'monospace',
+                fontSize: '0.9rem',
                 ...(inline ? {} : { display: 'block', whiteSpace: 'pre-wrap' }),
               }}
-              {...props}
-            />
+            >
+              {children}
+            </Typography>
+          ),
+          a: ({ href, children }) => (
+            <Typography
+              component="a"
+              href={href}
+              sx={{
+                color: 'primary.main',
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline',
+                },
+              }}
+            >
+              {children}
+            </Typography>
+          ),
+          strong: ({ children }) => (
+            <Typography
+              component="strong"
+              sx={{ fontWeight: 'bold' }}
+            >
+              {children}
+            </Typography>
+          ),
+          em: ({ children }) => (
+            <Typography
+              component="em"
+              sx={{ fontStyle: 'italic' }}
+            >
+              {children}
+            </Typography>
           ),
         }}
       >
-        {content}
+        {cleanContent}
       </ReactMarkdown>
     </Box>
   );

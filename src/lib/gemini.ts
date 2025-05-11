@@ -176,7 +176,7 @@ export async function generateDetailedContent(topic: string, text: string) {
   });
 
   const prompt = `Given the topic "${topic}", provide a detailed explanation about "${text}". 
-  Format the response in markdown with proper headings, lists, and emphasis.
+  Format with proper headings, lists, and emphasis.
   Focus on being clear and concise.
   Keep headings short (5-7 words maximum).
   Start with a brief overview, then provide detailed explanations.`;

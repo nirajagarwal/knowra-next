@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Topic from '@/models/Topic';
+import { Model } from 'mongoose';
 
 export async function GET(request: Request) {
   try {
@@ -14,7 +15,8 @@ export async function GET(request: Request) {
     await connectDB();
 
     // Perform fuzzy search on topic titles
-    const topics = await Topic.find({
+    const TopicModel = Topic as Model<any>;
+    const topics = await TopicModel.find({
       title: { $regex: query, $options: 'i' }
     })
     .select('title')
