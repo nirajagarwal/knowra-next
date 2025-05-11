@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { generateDetailedContent } from '@/lib/gemini';
 import connectDB from '@/lib/mongodb';
-import Topic from '@/models/Topic';
+import TopicImport from '@/models/Topic';
+const Topic: any = TopicImport;
 
 export async function POST(request: Request) {
   try {
