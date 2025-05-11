@@ -3,6 +3,7 @@ import path from 'path';
 import { generateTopicContent } from '@/lib/gemini';
 import connectDB from '@/lib/mongodb';
 import Topic from '@/models/Topic';
+import { Model } from 'mongoose';
 
 async function populateDatabase() {
   try {
@@ -16,13 +17,15 @@ async function populateDatabase() {
 
     console.log(`Found ${topics.length} topics to process`);
 
+    const TopicModel = Topic as Model<any>;
+
     // Process each topic
     for (const [index, topic] of topics.entries()) {
       try {
         console.log(`Processing topic ${index + 1}/${topics.length}: ${topic}`);
 
         // Check if topic already exists
-        const existingTopic = await Topic.findOne({ title: topic });
+        const existingTopic = await TopicModel.findOne({ title: topic });
         if (existingTopic) {
           console.log(`Topic "${topic}" already exists, skipping...`);
           continue;

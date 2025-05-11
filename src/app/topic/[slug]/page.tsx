@@ -1,3 +1,4 @@
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import connectDB from '@/lib/mongodb';
 import Topic from '@/models/Topic';
@@ -5,6 +6,7 @@ import TopicCard from '@/components/TopicCard';
 import SearchBox from '@/components/SearchBox';
 import { generateTopicContent } from '@/lib/gemini';
 import { Typography, Box } from '@mui/material';
+import { Model } from 'mongoose';
 
 interface TopicPageProps {
   params: {
@@ -40,14 +42,11 @@ export async function generateMetadata({ params }: TopicPageProps) {
 }
 
 async function getTopic(slug: string) {
-  try {
-    await connectDB();
-    const decodedSlug = decodeURIComponent(slug);
-    return Topic.findOne({ title: decodedSlug });
-  } catch (error) {
-    console.error('Error getting topic:', error);
-    return null;
-  }
+  await connectDB();
+  const decodedSlug = decodeURIComponent(slug);
+  
+  const TopicModel = Topic as Model<any>;
+  return TopicModel.findOne({ title: decodedSlug });
 }
 
 async function createTopic(title: string) {

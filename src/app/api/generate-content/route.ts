@@ -1,23 +1,30 @@
 import { NextResponse } from 'next/server';
 import { generateDetailedContent } from '@/lib/gemini';
 import connectDB from '@/lib/mongodb';
-import TopicImport from '@/models/Topic';
-const Topic: any = TopicImport;
+import Topic from '@/models/Topic';
+import { Model } from 'mongoose';
 
 export async function POST(request: Request) {
   try {
     const { topic, text } = await request.json();
 
     if (!topic || !text) {
-      return new NextResponse('Topic and text are required', { status: 400 });
+      return NextResponse.json(
+        { error: 'Topic and text are required' },
+        { status: 400 }
+      );
     }
 
     await connectDB();
 
-    // Find the topic and check if we have cached content
-    const topicDoc = await Topic.findOne({ title: topic });
+    const TopicModel = Topic as Model<any>;
+    const topicDoc = await TopicModel.findOne({ title: topic });
+
     if (!topicDoc) {
-      return new NextResponse('Topic not found', { status: 404 });
+      return NextResponse.json(
+        { error: 'Topic not found' },
+        { status: 404 }
+      );
     }
 
     // Look for the text in all aspects
