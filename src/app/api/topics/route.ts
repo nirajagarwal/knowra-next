@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Topic from '@/models/Topic';
+import { Model } from 'mongoose';
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
     await connectDB();
 
     // Check if topic already exists
-    const existingTopic = await Topic.findOne({ title });
+    const TopicModel = Topic as Model<any>;
+    const existingTopic = await TopicModel.findOne({ title });
     if (existingTopic) {
       return NextResponse.json(
         { error: 'Topic already exists' },
