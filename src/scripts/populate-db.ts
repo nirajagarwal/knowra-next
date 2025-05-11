@@ -20,9 +20,10 @@ async function populateDatabase() {
     const TopicModel = Topic as Model<any>;
 
     // Process each topic
-    for (const [index, topic] of topics.entries()) {
+    for (let i = 0; i < topics.length; i++) {
+      const topic = topics[i];
       try {
-        console.log(`Processing topic ${index + 1}/${topics.length}: ${topic}`);
+        console.log(`Processing topic ${i + 1}/${topics.length}: ${topic}`);
 
         // Check if topic already exists
         const existingTopic = await TopicModel.findOne({ title: topic });
