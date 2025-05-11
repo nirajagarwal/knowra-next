@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import ContentDisplay from './ContentDisplay';
 
 interface Aspect {
   caption: string;
@@ -198,64 +199,28 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardPro
             </CardContent>
           </Card>
 
-          {/* Right Card - Content */}
+          {/* Right Panel - Content Display */}
           <Paper 
             elevation={3}
             sx={{ 
               flex: 1,
-              maxHeight: { md: '80vh' },
-              overflow: 'auto',
-              p: 1.5
+              p: 3,
+              minHeight: '60vh',
+              display: 'flex',
+              flexDirection: 'column'
             }}
-            onMouseUp={handleTextSelection}
           >
             {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 1.5 }}>
-                <Typography>Loading content...</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+                <Typography variant="body1" color="text.secondary">
+                  Generating...
+                </Typography>
               </Box>
             ) : selectedContent ? (
-              <Box sx={{ 
-                '& .markdown-body': {
-                  '& h1': { 
-                    fontSize: '1.25rem', 
-                    mb: 1,
-                    mt: 0
-                  },
-                  '& h2': { fontSize: '1.1rem', mb: 1, mt: 1.5 },
-                  '& h3': { fontSize: '1rem', mb: 1, mt: 1.5 },
-                  '& p': { mb: 1 },
-                  '& ul, & ol': { mb: 1, pl: 2 },
-                  '& li': { mb: 0.5 },
-                  '& strong': { fontWeight: 'bold' },
-                  '& em': { fontStyle: 'italic' },
-                  '& code': { 
-                    backgroundColor: 'action.hover',
-                    padding: '0.2em 0.4em',
-                    borderRadius: '3px',
-                    fontSize: '0.9em'
-                  },
-                  '& pre': {
-                    backgroundColor: 'action.hover',
-                    padding: '1em',
-                    borderRadius: '4px',
-                    overflow: 'auto',
-                    '& code': {
-                      backgroundColor: 'transparent',
-                      padding: 0
-                    }
-                  }
-                }
-              }}>
-                <ReactMarkdown 
-                  className="markdown-body"
-                  remarkPlugins={[remarkGfm]}
-                >
-                  {selectedContent}
-                </ReactMarkdown>
-              </Box>
+              <ContentDisplay content={selectedContent} />
             ) : (
               <Box>
-                <Typography variant="h6" gutterBottom sx={{ mb: 1, mt: 0 }}>
+                <Typography variant="h6" gutterBottom>
                   Overview
                 </Typography>
                 <Typography>

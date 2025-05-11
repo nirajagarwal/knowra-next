@@ -141,12 +141,15 @@ export async function generateTopicContent(topic: string) {
     const parsed = JSON.parse(cleanedText);
     console.log('Parsed JSON:', parsed);
 
+    // Handle array response by taking the first item
+    const content = Array.isArray(parsed) ? parsed[0] : parsed;
+
     // Basic validation
-    if (!parsed.tldr || !Array.isArray(parsed.aspects)) {
+    if (!content.tldr || !Array.isArray(content.aspects)) {
       throw new Error('Invalid response structure');
     }
 
-    return parsed;
+    return content;
   } catch (error) {
     console.error('Error in generateTopicContent:', error);
     throw error;
