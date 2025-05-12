@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, memo, useEffect } from 'react';
+import { useState, useCallback, memo } from 'react';
 import {
   Card,
   CardContent,
@@ -10,8 +10,12 @@ import {
   ListItemText,
   Collapse,
   Box,
-  Paper,
+  IconButton,
+  Drawer,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ContentDisplay from './ContentDisplay';
@@ -28,10 +32,13 @@ interface TopicCardProps {
 }
 
 const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardProps) {
-  const [expandedAspect, setExpandedAspect] = useState<string | null>(null);
+  const [expandedAspect, setExpandedAspect] = useState<string | null>(aspects[0]?.caption || null);
   const [selectedThing, setSelectedThing] = useState<string | null>(null);
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleAspectClick = useCallback((caption: string) => {
     setExpandedAspect(expandedAspect === caption ? null : caption);
@@ -45,6 +52,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardPro
     
     setIsLoading(true);
     setSelectedThing(thing);
+    setIsDrawerOpen(true);
     
     try {
       const response = await fetch('/api/generate-content', {
@@ -73,51 +81,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardPro
     }
   }, [title]);
 
-  const handleTextSelection = useCallback(async (e: React.MouseEvent) => {
-    if (!e.ctrlKey) return;
-    
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) return;
-    
-    const selectedText = selection.toString().trim();
-    if (!selectedText) return;
-    
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch('/api/generate-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          topic: title,
-          text: selectedText,
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate content');
-      }
-      
-      const content = await response.text();
-      if (content) {
-        setSelectedContent(content);
-      }
-    } catch (error) {
-      console.error('Error generating content:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [title]);
-
-  // Debug log for selectedContent
-  useEffect(() => {
-    if (selectedContent !== null) {
-      // eslint-disable-next-line no-console
-      console.log('selectedContent:', selectedContent);
-    }
-  }, [selectedContent]);
+  const handleDrawerClose = useCallback(() => {
+    setIsDrawerOpen(false);
+  }, []);
 
   return (
     <>
@@ -129,44 +95,50 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardPro
           padding-left: 1.5em;
         }
       `}</style>
-      <Box sx={{ px: { xs: 2, md: 4 }, py: 3 }}>
+      <Box>
         <Box sx={{ 
-          display: 'flex', 
-          gap: 2, 
           maxWidth: 1200, 
           mx: 'auto',
-          flexDirection: { xs: 'column', md: 'row' }
         }}>
-          {/* Left Card - Navigation */}
+          {/* Main Content Card */}
           <Card sx={{ 
-            flex: { md: '0 0 300px' },
-            maxHeight: { md: '80vh' },
+            maxHeight: '80vh',
             overflow: 'auto'
           }}>
             <CardContent sx={{ p: 0 }}>
-              <List dense disablePadding>
+              <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="h6" gutterBottom>
+                  Overview
+                </Typography>
+                <Typography>
+                  {tldr}
+                </Typography>
+              </Box>
+              
+              <List disablePadding>
                 {aspects.map((aspect) => (
                   <Box key={aspect.caption}>
                     <ListItem
                       button
                       onClick={() => handleAspectClick(aspect.caption)}
                       sx={{
-                        borderRadius: 0,
                         '&:hover': { backgroundColor: 'action.hover' },
-                        py: 0.5,
-                        px: 1.5
+                        py: 1,
+                        px: 2,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider'
                       }}
                     >
                       <ListItemText 
                         primary={
-                          <Typography variant="subtitle2" fontWeight="bold">
+                          <Typography variant="subtitle1" fontWeight="bold">
                             {aspect.caption}
                           </Typography>
                         } 
                       />
                     </ListItem>
                     <Collapse in={expandedAspect === aspect.caption}>
-                      <List component="div" disablePadding dense>
+                      <List component="div" disablePadding>
                         {aspect.thingsToKnow.map((thing, index) => (
                           <ListItem
                             key={index}
@@ -174,9 +146,10 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardPro
                             onClick={(e) => handleThingClick(thing, e)}
                             selected={selectedThing === thing}
                             sx={{ 
-                              py: 0.5,
-                              px: 1.5,
-                              borderRadius: 0,
+                              py: 0.75,
+                              px: 2,
+                              borderBottom: '1px solid',
+                              borderColor: 'divider',
                               '&.Mui-selected': {
                                 backgroundColor: 'action.selected',
                               }
@@ -184,7 +157,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardPro
                           >
                             <ListItemText 
                               primary={
-                                <Typography variant="body2">
+                                <Typography variant="body1">
                                   {thing}
                                 </Typography>
                               }
@@ -199,36 +172,48 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardPro
             </CardContent>
           </Card>
 
-          {/* Right Panel - Content Display */}
-          <Paper 
-            elevation={3}
-            sx={{ 
-              flex: 1,
-              p: 3,
-              minHeight: '60vh',
-              display: 'flex',
-              flexDirection: 'column'
+          {/* Sliding Panel for Content */}
+          <Drawer
+            anchor="right"
+            open={isDrawerOpen}
+            onClose={handleDrawerClose}
+            variant={isMobile ? "temporary" : "persistent"}
+            sx={{
+              '& .MuiDrawer-paper': {
+                width: { xs: '100%', sm: 400, md: 500 },
+                boxSizing: 'border-box',
+                p: 0,
+              },
             }}
           >
-            {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-                <Typography variant="body1" color="text.secondary">
-                  Generating...
-                </Typography>
-              </Box>
-            ) : selectedContent ? (
-              <ContentDisplay content={selectedContent} />
-            ) : (
-              <Box>
-                <Typography variant="h6" gutterBottom>
-                  Overview
-                </Typography>
-                <Typography>
-                  {tldr}
-                </Typography>
-              </Box>
-            )}
-          </Paper>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              p: 2,
+              borderBottom: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <Typography variant="h6" noWrap>
+                {selectedThing}
+              </Typography>
+              <IconButton onClick={handleDrawerClose} size="small">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            
+            <Box sx={{ p: 2, overflow: 'auto', height: 'calc(100% - 64px)' }}>
+              {isLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Generating...
+                  </Typography>
+                </Box>
+              ) : selectedContent ? (
+                <ContentDisplay content={selectedContent} />
+              ) : null}
+            </Box>
+          </Drawer>
         </Box>
       </Box>
     </>

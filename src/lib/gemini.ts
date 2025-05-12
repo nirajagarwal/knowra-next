@@ -1,10 +1,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-if (!process.env.GOOGLE_AI_API_KEY) {
-  throw new Error('Please define the GOOGLE_AI_API_KEY environment variable inside .env');
+// Debug environment variables
+console.log('Environment variables:', {
+  hasKey: !!process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY,
+  keyLength: process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY?.length,
+  nodeEnv: process.env.NODE_ENV
+});
+
+if (!process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY) {
+  throw new Error('Please define the NEXT_PUBLIC_GOOGLE_AI_API_KEY environment variable inside .env');
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY);
 
 // Cache configuration
 const CACHE_CONFIG = {
@@ -128,18 +135,14 @@ export async function generateTopicContent(topic: string) {
 }`;
 
   try {
-    console.log('Generating content for topic:', topic);
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    console.log('Raw response:', text);
 
     // Basic string cleaning
     const cleanedText = text.trim();
-    console.log('Cleaned text:', cleanedText);
 
     const parsed = JSON.parse(cleanedText);
-    console.log('Parsed JSON:', parsed);
 
     // Handle array response by taking the first item
     const content = Array.isArray(parsed) ? parsed[0] : parsed;
@@ -161,13 +164,9 @@ export async function generateDetailedContent(topic: string, text: string) {
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  // Create a cache key from topic and text
   const cacheKey = `${topic}:${text}`;
-  
-  // Check if content is in cache
   const cachedContent = contentCache.get(cacheKey);
   if (cachedContent) {
-    console.log('Returning cached content for:', cacheKey);
     return cachedContent;
   }
 
@@ -175,26 +174,16 @@ export async function generateDetailedContent(topic: string, text: string) {
     model: 'gemini-2.0-flash-001'
   });
 
-  const prompt = `Given the topic "${topic}", provide a detailed explanation about "${text}". 
-  Format with proper headings, lists, and emphasis.
-  Focus on being clear and concise.
-  Keep headings short (5-7 words maximum).
-  Start with a brief overview, then provide detailed explanations.`;
+  const prompt = `I am learning about "${topic}". In this context tell me more about: ${text}. Just respond with the content without preamble.`;
 
   try {
-    console.log('Generating detailed content for:', { topic, text });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const content = response.text();
-    
-    if (!content) {
-      throw new Error('Empty response received');
-    }
 
-    console.log('Generated content:', content);
-    
-    // Cache the content before returning
+    // Cache the content
     contentCache.set(cacheKey, content);
+
     return content;
   } catch (error) {
     console.error('Error in generateDetailedContent:', error);

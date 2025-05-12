@@ -15,9 +15,6 @@ interface CodeProps {
 const ContentDisplay = ({ content }: ContentDisplayProps) => {
   if (!content) return null;
 
-  // Debug log
-  console.log('ContentDisplay received:', content);
-
   // Clean up content if needed
   const cleanContent = content.replace(/^```markdown\n?|\n?```$/g, '').trim();
 
