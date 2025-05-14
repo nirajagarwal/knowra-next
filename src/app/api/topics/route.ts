@@ -6,7 +6,7 @@ import { Model } from 'mongoose';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { title, tldr, aspects } = data;
+    const { title, tldr, aspects, related } = data;
 
     if (!title || !tldr || !aspects) {
       return NextResponse.json(
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
       title,
       tldr,
       aspects,
+      related: related || [], // Include related topics if provided
     });
 
     await topic.save();

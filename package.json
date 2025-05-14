@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "populate-db": "ts-node -r tsconfig-paths/register src/scripts/populate-db.ts",
+    "populate-db": "tsx src/scripts/populate-db.ts",
     "test-llm": "tsx src/scripts/test-llm.ts"
   },
   "keywords": [],

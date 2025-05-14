@@ -14,11 +14,22 @@ interface TopicPageClientProps {
       caption: string;
       thingsToKnow: string[];
     }>;
+    related?: string[];
   };
 }
 
 export default function TopicPageClient({ topic }: TopicPageClientProps) {
   const router = useRouter();
+
+  if (!topic || typeof topic !== 'object') {
+    return (
+      <Container maxWidth="lg" sx={{ px: 1, height: '100vh', display: 'flex', flexDirection: 'column', mt: 0.5 }}>
+        <Typography variant="h6" color="error">
+          Error: Invalid topic data
+        </Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container 
@@ -67,6 +78,7 @@ export default function TopicPageClient({ topic }: TopicPageClientProps) {
           title={topic.title}
           tldr={topic.tldr}
           aspects={topic.aspects}
+          related={topic.related}
         />
       </Box>
     </Container>

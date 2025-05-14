@@ -117,42 +117,76 @@ export async function generateTopicContent(topic: string) {
   }
 
   const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash-001',
+    model: 'gemini-2.5-flash-preview-04-17',
     generationConfig: {
       responseMimeType: "application/json"
     }
   });
 
-  const prompt = `Generate a learning guide for broad and deep understanding of various aspects of the topic "${topic}" in this exact JSON format:
+  const prompt = `Generate a learning guide for broad and deep understanding of various aspects of the topic "${topic}". 
+  Also provide a list of related words, entities, or concepts. Use this exact JSON format:
 {
-  "tldr": "Three sentences with the most important things to know about the topic",
+  "tldr": "Three sentences with the main thingsto know about the topic",
   "aspects": [
     {
       "caption": "Aspect name",
-      "thingsToKnow": ["Fact 1", "Fact 2", "Fact 3", ...]
+      "thingsToKnow": ["Knowledge nugget 1", "Knowledge nugget 2", "Knowledge nugget 3", ...],
     }
-  ]
-}`;
+  ],
+  "related": ["related topic 1", "related topic 2", "related topic 3", "..."]
+}
+Additional instructions: 
+1. Aim to select the aspects and thingsToKnow so that the points are mutually exclusive and collectively exhaustive. 
+2. High information density for deep learning with a sprinkling of fun facts.
+3. Ensure the response is valid JSON with proper commas and braces.
+4. Do not include any markdown formatting or code block indicators.`;
 
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
+    console.log('Raw Gemini response:', text);
+
     // Basic string cleaning
-    const cleanedText = text.trim();
+    const cleanedText = text.trim()
+      .replace(/```json\n?|\n?```/g, '') // Remove any markdown code blocks
+      .replace(/,\s*}/g, '}') // Remove trailing commas before closing braces
+      .replace(/,\s*]/g, ']') // Remove trailing commas before closing brackets
+      .replace(/\n/g, ' ') // Remove newlines
+      .replace(/\s+/g, ' '); // Normalize whitespace
 
-    const parsed = JSON.parse(cleanedText);
+    console.log('Cleaned text:', cleanedText);
 
-    // Handle array response by taking the first item
-    const content = Array.isArray(parsed) ? parsed[0] : parsed;
+    try {
+      const parsed = JSON.parse(cleanedText);
 
-    // Basic validation
-    if (!content.tldr || !Array.isArray(content.aspects)) {
-      throw new Error('Invalid response structure');
+      // Handle array response by taking the first item
+      const content = Array.isArray(parsed) ? parsed[0] : parsed;
+
+      console.log('Parsed content:', content);
+
+      // Basic validation
+      if (!content.tldr || !Array.isArray(content.aspects)) {
+        console.error('Invalid response structure:', content);
+        throw new Error('Invalid response structure');
+      }
+
+      // Ensure related is an array
+      if (!Array.isArray(content.related)) {
+        console.log('Related is not an array, setting to empty array');
+        content.related = [];
+      } else {
+        console.log('Related topics:', content.related);
+      }
+
+      return content;
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      console.error('Raw response:', text);
+      console.error('Cleaned text:', cleanedText);
+      throw new Error(`Failed to parse Gemini response: ${parseError.message}`);
     }
-
-    return content;
   } catch (error) {
     console.error('Error in generateTopicContent:', error);
     throw error;
@@ -167,22 +201,40 @@ export async function generateDetailedContent(topic: string, text: string) {
   const cacheKey = `${topic}:${text}`;
   const cachedContent = contentCache.get(cacheKey);
   if (cachedContent) {
-    return cachedContent;
+    return JSON.parse(cachedContent);
   }
 
   const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash-001'
+    model: 'gemini-2.5-flash-preview-04-17',
+    generationConfig: {
+      responseMimeType: "application/json"
+    }
   });
 
-  const prompt = `I am learning about "${topic}". In this context tell me more about: ${text}. Just respond with the content without preamble.`;
+  const prompt = `I am learning about "${topic}". In this context tell me more about: ${text} in this exact JSON format:
+  {
+    "tldr": "A summary",
+    "caption": "Short title",
+    "thingsToKnow": ["Knowledge nugget 1", "Knowledge nugget 2", "Knowledge nugget 3", ...]
+  }
+  `;
 
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const content = response.text();
+    const text = response.text();
 
-    // Cache the content
-    contentCache.set(cacheKey, content);
+    // Basic string cleaning
+    const cleanedText = sanitizeJsonString(text);
+    const content = JSON.parse(cleanedText);
+
+    // Basic validation
+    if (!content.tldr || !content.caption || !Array.isArray(content.thingsToKnow)) {
+      throw new Error('Invalid response structure');
+    }
+
+    // Cache the raw JSON string
+    contentCache.set(cacheKey, cleanedText);
 
     return content;
   } catch (error) {

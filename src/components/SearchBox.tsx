@@ -87,6 +87,12 @@ export default function SearchBox() {
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: '4px 0 0 4px',
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderWidth: '1px'
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderRight: 'none'
+                }
               },
             }}
           />
@@ -101,11 +107,15 @@ export default function SearchBox() {
           borderRadius: '0 4px 4px 0',
           backgroundColor: 'primary.main',
           color: 'white',
+          border: '1px solid',
+          borderColor: 'primary.main',
           '&:hover': {
             backgroundColor: 'primary.dark',
+            borderColor: 'primary.dark',
           },
           '&.Mui-disabled': {
             backgroundColor: 'primary.main',
+            borderColor: 'primary.main',
             opacity: 0.7,
           },
         }}

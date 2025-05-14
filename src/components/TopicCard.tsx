@@ -9,7 +9,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Box,
-  Link,
+  Link as MuiLink,
   List,
   ListItem,
   ListItemText,
@@ -17,10 +17,13 @@ import {
   Paper,
   IconButton,
   Drawer,
+  CircularProgress,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentDisplay from './ContentDisplay';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface TopicCardProps {
   title: string;
@@ -38,11 +41,13 @@ interface DetailedContent {
 }
 
 const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }: TopicCardProps) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState<string[]>([]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [detailedContent, setDetailedContent] = useState<DetailedContent | null>(null);
+  const [loadingTopics, setLoadingTopics] = useState<string[]>([]);
 
   const handleChange = useCallback((panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(prev => 
@@ -84,6 +89,12 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
     setIsPanelOpen(false);
     setSelectedItem('');
     setDetailedContent(null);
+  };
+
+  const handleRelatedTopicClick = (topic: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    setLoadingTopics(prev => [...prev, topic]);
+    router.push(`/topic/${encodeURIComponent(topic)}`);
   };
 
   return (
@@ -183,25 +194,80 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
               </AccordionDetails>
             </Accordion>
           ))}
-        </Box>
 
-        {related.length > 0 && (
-          <>
-            <Divider sx={{ my: 2, mx: -2 }} />
-            <Typography variant="h6" gutterBottom sx={{ px: 2 }}>
-              Related Topics
-            </Typography>
-            <List>
-              {related.map((topic) => (
-                <ListItem key={topic} sx={{ px: 2 }}>
-                  <Link href={`/topic/${encodeURIComponent(topic)}`} color="primary">
-                    {topic}
-                  </Link>
-                </ListItem>
-              ))}
-            </List>
-          </>
-        )}
+          {related.length > 0 && (
+            <Accordion
+              expanded={expanded.includes('related')}
+              onChange={handleChange('related')}
+              disableGutters
+              elevation={0}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="related-content"
+                id="related-header"
+              >
+                <Typography sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  color: 'text.primary',
+                }}>
+                  Related Topics
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <List disablePadding>
+                  {related.map((topic) => (
+                    <ListItem
+                      key={topic}
+                      disableGutters
+                      sx={{
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+                        '&:last-child': {
+                          borderBottom: 'none',
+                        },
+                      }}
+                    >
+                      <Link 
+                        href={`/topic/${encodeURIComponent(topic)}`}
+                        style={{ 
+                          textDecoration: 'none',
+                          width: '100%',
+                        }}
+                        onClick={(e) => handleRelatedTopicClick(topic, e)}
+                      >
+                        <Box
+                          sx={{
+                            color: 'primary.main',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            py: 1.5,
+                            px: 2,
+                            '&:hover': {
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                            },
+                          }}
+                        >
+                          {topic}
+                          {loadingTopics.includes(topic) && (
+                            <CircularProgress
+                              size={16}
+                              sx={{
+                                ml: 1,
+                                color: 'primary.main',
+                              }}
+                            />
+                          )}
+                        </Box>
+                      </Link>
+                    </ListItem>
+                  ))}
+                </List>
+              </AccordionDetails>
+            </Accordion>
+          )}
+        </Box>
 
         <Drawer
           anchor="right"

@@ -27,49 +27,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Look for the text in all aspects
-    let cachedContent = null;
-    let lastUpdated = null;
+    // Verify that the text exists in one of the aspects
+    const textExists = topicDoc.aspects.some(aspect => 
+      aspect.thingsToKnow.includes(text)
+    );
 
-    for (const aspect of topicDoc.aspects) {
-      const thing = aspect.thingsToKnow.find(t => t.text === text);
-      if (thing && thing.markdownContent && thing.lastUpdated) {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        if (thing.lastUpdated > thirtyDaysAgo) {
-          cachedContent = thing.markdownContent;
-          lastUpdated = thing.lastUpdated;
-          break;
-        }
-      }
+    if (!textExists) {
+      return NextResponse.json(
+        { error: 'Text not found in any aspect' },
+        { status: 404 }
+      );
     }
 
-    let content;
-    if (cachedContent && typeof cachedContent === 'string') {
-      content = cachedContent;
-    } else {
-      // Generate new content if not cached or cache is invalid
-      content = await generateDetailedContent(topic, text);
+    // Generate or get cached content
+    const content = await generateDetailedContent(topic, text);
+    return NextResponse.json(content);
 
-      // Update the topic document with the new content
-      for (const aspect of topicDoc.aspects) {
-        const thing = aspect.thingsToKnow.find(t => t.text === text);
-        if (thing) {
-          thing.markdownContent = content;
-          thing.lastUpdated = new Date();
-          break;
-        }
-      }
-
-      await topicDoc.save();
-    }
-
-    return new NextResponse(content, {
-      headers: { 'Content-Type': 'text/markdown' }
-    });
   } catch (error) {
     console.error('Error in generate-content API:', error);
-    return new NextResponse('Failed to generate content', { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to generate content' },
+      { status: 500 }
+    );
   }
 } 
