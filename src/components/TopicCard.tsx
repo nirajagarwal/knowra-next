@@ -1,223 +1,304 @@
 'use client';
 
-import { useState, useCallback, memo } from 'react';
+import { useState, memo, useCallback } from 'react';
 import {
   Card,
   CardContent,
   Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Link,
   List,
   ListItem,
   ListItemText,
-  Collapse,
-  Box,
+  Divider,
+  Paper,
   IconButton,
   Drawer,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import ContentDisplay from './ContentDisplay';
-
-interface Aspect {
-  caption: string;
-  thingsToKnow: string[];
-}
 
 interface TopicCardProps {
   title: string;
   tldr: string;
-  aspects: Aspect[];
+  aspects: Array<{
+    caption: string;
+    thingsToKnow: string[];
+  }>;
+  related?: string[];
 }
 
-const TopicCard = memo(function TopicCard({ title, tldr, aspects }: TopicCardProps) {
-  const [expandedAspect, setExpandedAspect] = useState<string | null>(aspects[0]?.caption || null);
-  const [selectedThing, setSelectedThing] = useState<string | null>(null);
-  const [selectedContent, setSelectedContent] = useState<string | null>(null);
+interface DetailedContent {
+  caption: string;
+  thingsToKnow: string[];
+}
+
+const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }: TopicCardProps) {
+  const [expanded, setExpanded] = useState<string[]>([]);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [detailedContent, setDetailedContent] = useState<DetailedContent | null>(null);
 
-  const handleAspectClick = useCallback((caption: string) => {
-    setExpandedAspect(expandedAspect === caption ? null : caption);
-    setSelectedThing(null);
-    setSelectedContent(null);
-  }, [expandedAspect]);
+  const handleChange = useCallback((panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpanded(prev => 
+      isExpanded 
+        ? [...prev, panel]
+        : prev.filter(p => p !== panel)
+    );
+  }, []);
 
-  const handleThingClick = useCallback(async (thing: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!thing || typeof thing !== 'string') return;
-    
+  const handleItemClick = async (item: string) => {
+    setSelectedItem(item);
+    setIsPanelOpen(true);
     setIsLoading(true);
-    setSelectedThing(thing);
-    setIsDrawerOpen(true);
-    
+    setDetailedContent(null);
+
     try {
-      const response = await fetch('/api/generate-content', {
+      const response = await fetch('/api/generate-detailed-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          topic: title,
-          text: thing,
-        }),
+        body: JSON.stringify({ item }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to generate content');
       }
-      
-      const content = await response.text();
-      if (content) {
-        setSelectedContent(content);
-      }
+
+      const data = await response.json();
+      setDetailedContent(data);
     } catch (error) {
       console.error('Error generating content:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [title]);
+  };
 
-  const handleDrawerClose = useCallback(() => {
-    setIsDrawerOpen(false);
-  }, []);
+  const handleClosePanel = () => {
+    setIsPanelOpen(false);
+    setSelectedItem('');
+    setDetailedContent(null);
+  };
 
   return (
-    <>
-      <style jsx global>{`
-        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body p, .markdown-body ul, .markdown-body li {
-          margin: 0 0 8px 0;
-        }
-        .markdown-body ul, .markdown-body ol {
-          padding-left: 1.5em;
-        }
-      `}</style>
-      <Box>
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Typography variant="h5" component="h2" gutterBottom>
+          {title}
+        </Typography>
+        
+        <Box sx={{ mb: 3 }}>
+          <ContentDisplay content={tldr} />
+        </Box>
+
         <Box sx={{ 
-          maxWidth: 1200, 
-          mx: 'auto',
+          '& .MuiAccordion-root': {
+            '&:not(:last-child)': {
+              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+            },
+            '&:before': {
+              display: 'none',
+            },
+            backgroundColor: 'white',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            mb: 2,
+          },
+          '& .MuiAccordionSummary-root': {
+            minHeight: '48px',
+            '&.Mui-expanded': {
+              minHeight: '48px',
+            },
+            px: 2,
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            },
+          },
+          '& .MuiAccordionDetails-root': {
+            padding: 0,
+          },
         }}>
-          {/* Main Content Card */}
-          <Card sx={{ 
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }}>
-            <CardContent sx={{ p: 0 }}>
-              <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="h6" gutterBottom>
-                  Overview
+          {aspects.map((aspect, index) => (
+            <Accordion
+              key={aspect.caption}
+              expanded={expanded.includes(`panel${index}`)}
+              onChange={handleChange(`panel${index}`)}
+              disableGutters
+              elevation={0}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls={`panel${index}-content`}
+                id={`panel${index}-header`}
+              >
+                <Typography sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  color: 'text.primary',
+                }}>
+                  {aspect.caption}
                 </Typography>
-                <Typography>
-                  {tldr}
-                </Typography>
-              </Box>
-              
-              <List disablePadding>
-                {aspects.map((aspect) => (
-                  <Box key={aspect.caption}>
+              </AccordionSummary>
+              <AccordionDetails>
+                <List disablePadding>
+                  {aspect.thingsToKnow.map((item) => (
                     <ListItem
+                      key={item}
                       button
-                      onClick={() => handleAspectClick(aspect.caption)}
+                      disableGutters
                       sx={{
-                        '&:hover': { backgroundColor: 'action.hover' },
-                        py: 1,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        },
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+                        '&:last-child': {
+                          borderBottom: 'none',
+                        },
                         px: 2,
-                        borderBottom: '1px solid',
-                        borderColor: 'divider'
+                        py: 1.5,
                       }}
+                      onClick={() => handleItemClick(item)}
                     >
                       <ListItemText 
-                        primary={
-                          <Typography variant="subtitle1" fontWeight="bold">
-                            {aspect.caption}
-                          </Typography>
-                        } 
+                        primary={item} 
+                        primaryTypographyProps={{
+                          sx: { 
+                            fontSize: '1rem',
+                            color: 'text.primary',
+                          }
+                        }}
                       />
                     </ListItem>
-                    <Collapse in={expandedAspect === aspect.caption}>
-                      <List component="div" disablePadding>
-                        {aspect.thingsToKnow.map((thing, index) => (
-                          <ListItem
-                            key={index}
-                            button
-                            onClick={(e) => handleThingClick(thing, e)}
-                            selected={selectedThing === thing}
-                            sx={{ 
-                              py: 0.75,
-                              px: 2,
-                              borderBottom: '1px solid',
-                              borderColor: 'divider',
-                              '&.Mui-selected': {
-                                backgroundColor: 'action.selected',
-                              }
-                            }}
-                          >
-                            <ListItemText 
-                              primary={
-                                <Typography variant="body1">
-                                  {thing}
-                                </Typography>
-                              }
-                            />
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Collapse>
-                  </Box>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
+                  ))}
+                </List>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Box>
 
-          {/* Sliding Panel for Content */}
-          <Drawer
-            anchor="right"
-            open={isDrawerOpen}
-            onClose={handleDrawerClose}
-            variant={isMobile ? "temporary" : "persistent"}
-            sx={{
-              '& .MuiDrawer-paper': {
-                width: { xs: '100%', sm: 400, md: 500 },
-                boxSizing: 'border-box',
-                p: 0,
-              },
-            }}
-          >
+        {related.length > 0 && (
+          <>
+            <Divider sx={{ my: 2, mx: -2 }} />
+            <Typography variant="h6" gutterBottom sx={{ px: 2 }}>
+              Related Topics
+            </Typography>
+            <List>
+              {related.map((topic) => (
+                <ListItem key={topic} sx={{ px: 2 }}>
+                  <Link href={`/topic/${encodeURIComponent(topic)}`} color="primary">
+                    {topic}
+                  </Link>
+                </ListItem>
+              ))}
+            </List>
+          </>
+        )}
+
+        <Drawer
+          anchor="right"
+          open={isPanelOpen}
+          onClose={handleClosePanel}
+          PaperProps={{
+            sx: {
+              width: '400px',
+              p: 2,
+              backgroundColor: '#f5f5f5',
+              display: 'flex',
+              flexDirection: 'column',
+            },
+          }}
+        >
+          <Box sx={{ 
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+          }}>
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
               p: 2,
-              borderBottom: '1px solid',
-              borderColor: 'divider'
+              borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+              backgroundColor: 'rgba(0, 0, 0, 0.02)',
+              flexShrink: 0,
             }}>
-              <Typography variant="h6" noWrap>
-                {selectedThing}
+              <Typography sx={{ 
+                fontWeight: 'bold',
+                fontSize: '1rem',
+                color: 'text.primary',
+              }}>
+                {isLoading ? 'Generating...' : detailedContent?.caption || selectedItem}
               </Typography>
-              <IconButton onClick={handleDrawerClose} size="small">
+              <IconButton 
+                onClick={handleClosePanel} 
+                size="small"
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
                 <CloseIcon />
               </IconButton>
             </Box>
-            
-            <Box sx={{ p: 2, overflow: 'auto', height: 'calc(100% - 64px)' }}>
+            <Box sx={{ 
+              overflow: 'auto',
+              flexGrow: 1,
+            }}>
               {isLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                  <Typography variant="body1" color="text.secondary">
-                    Generating...
-                  </Typography>
+                <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+                  Generating content...
                 </Box>
-              ) : selectedContent ? (
-                <ContentDisplay content={selectedContent} />
-              ) : null}
+              ) : detailedContent && (
+                <List disablePadding>
+                  {detailedContent.thingsToKnow.map((item, index) => (
+                    <ListItem 
+                      key={index} 
+                      disableGutters
+                      sx={{ 
+                        py: 1.5,
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+                        '&:last-child': {
+                          borderBottom: 'none',
+                        },
+                        px: 2,
+                      }}
+                    >
+                      <ListItemText 
+                        primary={item} 
+                        primaryTypographyProps={{
+                          sx: { 
+                            fontSize: '1rem',
+                            color: 'text.primary',
+                          }
+                        }}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </Box>
-          </Drawer>
-        </Box>
-      </Box>
-    </>
+          </Box>
+        </Drawer>
+      </CardContent>
+    </Card>
   );
 });
+
+TopicCard.displayName = 'TopicCard';
 
 export default TopicCard; 
