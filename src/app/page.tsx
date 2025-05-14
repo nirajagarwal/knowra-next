@@ -43,7 +43,7 @@ export default async function Home() {
           <Grid container spacing={3}>
             {topics.map(topic => (
               <Grid item xs={12} sm={6} key={topic}>
-                <Link href={`/topic/${encodeURIComponent(topic)}`} style={{ textDecoration: 'none' }}>
+                <Link href={`/${encodeURIComponent(topic)}`} style={{ textDecoration: 'none' }}>
                   <Card sx={{ height: '100%', cursor: 'pointer' }}>
                     <CardContent>
                       <Typography variant="h6" component="h2" gutterBottom>

@@ -38,7 +38,7 @@ export default function SearchBox() {
       
       if (data.suggestions.includes(topic)) {
         // Topic exists, navigate to it
-        router.push(`/topic/${encodeURIComponent(topic)}`);
+        router.push(`/${encodeURIComponent(topic)}`);
       } else {
         // Topic doesn't exist, generate content and create it
         const content = await generateTopicContent(topic);
@@ -52,13 +52,25 @@ export default function SearchBox() {
             title: topic,
             tldr: content.tldr,
             aspects: content.aspects,
+            related: content.related || [],
           }),
         });
         
-        if (createResponse.ok) {
-          router.push(`/topic/${encodeURIComponent(topic)}`);
-        } else {
+        if (!createResponse.ok) {
           throw new Error('Failed to create topic');
+        }
+
+        // Wait for the topic to be created and indexed
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verify the topic exists before navigating
+        const verifyResponse = await fetch(`/api/search?q=${encodeURIComponent(topic)}`);
+        const verifyData = await verifyResponse.json();
+        
+        if (verifyData.suggestions.includes(topic)) {
+          router.push(`/${encodeURIComponent(topic)}`);
+        } else {
+          throw new Error('Topic creation verification failed');
         }
       }
     } catch (error) {

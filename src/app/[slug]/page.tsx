@@ -25,31 +25,27 @@ interface TopicPageProps {
   };
 }
 
-export async function generateMetadata({ params }: TopicPageProps) {
+export async function generateMetadata({ params }: TopicPageProps): Promise<Metadata> {
+  const decodedSlug = decodeURIComponent(params.slug);
+  
   try {
-    const topic = await getTopic(params.slug);
-    
-    if (!topic) {
+    await connectDB();
+    const TopicModel = Topic as Model<any>;
+    const topic = await TopicModel.findOne({ title: decodedSlug }).lean();
+
+    if (topic) {
       return {
-        title: 'Topic Not Found',
+        title: `${decodedSlug} | Knowra`,
+        description: topic.tldr,
       };
     }
-
-    return {
-      title: `${topic.title} - Knowra`,
-      description: topic.tldr,
-      openGraph: {
-        title: topic.title,
-        description: topic.tldr,
-        type: 'article',
-      },
-    };
   } catch (error) {
     console.error('Error generating metadata:', error);
-    return {
-      title: 'Error',
-    };
   }
+
+  return {
+    title: 'Topic Not Found | Knowra',
+  };
 }
 
 async function getTopic(slug: string) {
@@ -81,7 +77,6 @@ async function getTopic(slug: string) {
 async function createTopic(title: string) {
   try {
     const content = await generateTopicContent(title);
-    console.log('Content from Gemini:', JSON.stringify(content, null, 2));
 
     if (!content || !content.tldr || !Array.isArray(content.aspects)) {
       throw new Error('Invalid content structure');
@@ -89,7 +84,6 @@ async function createTopic(title: string) {
 
     // Convert to plain object and ensure all data is serializable
     const plainContent = JSON.parse(JSON.stringify(content));
-    console.log('Plain content:', JSON.stringify(plainContent, null, 2));
 
     // Prepare the data
     const topicData = {
@@ -106,28 +100,14 @@ async function createTopic(title: string) {
       updatedAt: new Date()
     };
 
-    console.log('Topic data before save:', JSON.stringify(topicData, null, 2));
-
     // Connect to MongoDB
     await connectDB();
     const db = mongoose.connection.db;
     const collection = db.collection('topics');
 
     try {
-      console.log('Attempting to save topic to MongoDB...');
       const result = await collection.insertOne(topicData);
-      console.log('Topic saved successfully:', result);
-
-      // Verify the saved data
       const savedTopic = await collection.findOne({ title });
-      console.log('Verified saved topic:', JSON.stringify(savedTopic, null, 2));
-      console.log('Related field after save:', {
-        isArray: Array.isArray(savedTopic?.related),
-        value: savedTopic?.related,
-        type: typeof savedTopic?.related,
-        length: savedTopic?.related?.length
-      });
-
       return savedTopic;
     } catch (saveError) {
       console.error('Error saving topic to MongoDB:', saveError);
@@ -149,28 +129,21 @@ async function createTopic(title: string) {
 
 export default async function TopicPage({ params }: TopicPageProps) {
   try {
-    console.log('TopicPage: Starting with params:', params);
     const { slug } = params;
     const decodedSlug = decodeURIComponent(slug);
-    console.log('TopicPage: Decoded slug:', decodedSlug);
 
     await connectDB();
-    console.log('TopicPage: Connected to DB');
     
     const TopicModel = Topic as Model<TopicDocument>;
     let topic = await TopicModel.findOne({ title: decodedSlug });
-    console.log('TopicPage: Found existing topic:', !!topic);
 
     // If topic doesn't exist, create it
     if (!topic) {
-      console.log('TopicPage: Topic not found, creating new topic...');
       await createTopic(decodedSlug);
       topic = await TopicModel.findOne({ title: decodedSlug });
-      console.log('TopicPage: Created new topic:', !!topic);
     } else {
       // If topic exists but has no related items, update it
       if (!Array.isArray(topic.related) || topic.related.length === 0) {
-        console.log('TopicPage: Updating existing topic with related items...');
         const content = await generateTopicContent(decodedSlug);
         if (content && Array.isArray(content.related)) {
           const db = mongoose.connection.db;
@@ -179,7 +152,6 @@ export default async function TopicPage({ params }: TopicPageProps) {
             { title: decodedSlug },
             { $set: { related: content.related } }
           );
-          console.log('TopicPage: Updated topic with related items');
           // Fetch the updated topic
           topic = await TopicModel.findOne({ title: decodedSlug });
         }
@@ -187,17 +159,11 @@ export default async function TopicPage({ params }: TopicPageProps) {
     }
 
     if (!topic) {
-      console.log('TopicPage: No topic found or created, returning 404');
       notFound();
     }
 
     // Convert to plain object and ensure all data is serializable
     const serializedTopic = JSON.parse(JSON.stringify(topic));
-    console.log('TopicPage: Serialized topic:', {
-      title: serializedTopic.title,
-      hasRelated: Array.isArray(serializedTopic.related),
-      relatedLength: serializedTopic.related?.length
-    });
 
     return <TopicPageClient topic={serializedTopic} />;
   } catch (error) {

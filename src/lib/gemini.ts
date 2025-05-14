@@ -1,12 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Debug environment variables
-console.log('Environment variables:', {
-  hasKey: !!process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY,
-  keyLength: process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY?.length,
-  nodeEnv: process.env.NODE_ENV
-});
-
 if (!process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY) {
   throw new Error('Please define the NEXT_PUBLIC_GOOGLE_AI_API_KEY environment variable inside .env');
 }
@@ -139,14 +132,13 @@ Additional instructions:
 1. Aim to select the aspects and thingsToKnow so that the points are mutually exclusive and collectively exhaustive. 
 2. High information density for deep learning with a sprinkling of fun facts.
 3. Ensure the response is valid JSON with proper commas and braces.
-4. Do not include any markdown formatting or code block indicators.`;
+4. Do not include any markdown formatting or code block indicators.
+5. Always include at least 3 related topics in the related array.`;
 
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-
-    console.log('Raw Gemini response:', text);
 
     // Basic string cleaning
     const cleanedText = text.trim()
@@ -156,39 +148,37 @@ Additional instructions:
       .replace(/\n/g, ' ') // Remove newlines
       .replace(/\s+/g, ' '); // Normalize whitespace
 
-    console.log('Cleaned text:', cleanedText);
-
     try {
       const parsed = JSON.parse(cleanedText);
 
       // Handle array response by taking the first item
       const content = Array.isArray(parsed) ? parsed[0] : parsed;
 
-      console.log('Parsed content:', content);
-
       // Basic validation
       if (!content.tldr || !Array.isArray(content.aspects)) {
-        console.error('Invalid response structure:', content);
         throw new Error('Invalid response structure');
       }
 
-      // Ensure related is an array
-      if (!Array.isArray(content.related)) {
-        console.log('Related is not an array, setting to empty array');
-        content.related = [];
-      } else {
-        console.log('Related topics:', content.related);
+      // Ensure related is an array with at least 3 items
+      if (!Array.isArray(content.related) || content.related.length < 3) {
+        // If related is missing or has less than 3 items, generate some related topics
+        const relatedPrompt = `Generate 3 related topics for "${topic}". Return only a JSON array of strings.`;
+        const relatedResult = await model.generateContent(relatedPrompt);
+        const relatedResponse = await relatedResult.response;
+        const relatedText = relatedResponse.text();
+        try {
+          const relatedTopics = JSON.parse(relatedText);
+          content.related = Array.isArray(relatedTopics) ? relatedTopics : [topic + ' basics', topic + ' fundamentals', topic + ' overview'];
+        } catch (e) {
+          content.related = [topic + ' basics', topic + ' fundamentals', topic + ' overview'];
+        }
       }
 
       return content;
     } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      console.error('Raw response:', text);
-      console.error('Cleaned text:', cleanedText);
       throw new Error(`Failed to parse Gemini response: ${parseError.message}`);
     }
   } catch (error) {
-    console.error('Error in generateTopicContent:', error);
     throw error;
   }
 }
@@ -238,7 +228,6 @@ export async function generateDetailedContent(topic: string, text: string) {
 
     return content;
   } catch (error) {
-    console.error('Error in generateDetailedContent:', error);
     throw error;
   }
 } 

@@ -42,7 +42,7 @@ interface DetailedContent {
 
 const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }: TopicCardProps) {
   const router = useRouter();
-  const [expanded, setExpanded] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState<string[]>(['tldr']);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -94,33 +94,27 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
   const handleRelatedTopicClick = (topic: string, e: React.MouseEvent) => {
     e.preventDefault();
     setLoadingTopics(prev => [...prev, topic]);
-    router.push(`/topic/${encodeURIComponent(topic)}`);
+    router.push(`/${encodeURIComponent(topic)}`);
   };
 
   return (
-    <Card sx={{ mb: 2 }}>
-      <CardContent>
-        <Typography variant="h5" component="h2" gutterBottom>
-          {title}
-        </Typography>
-        
-        <Box sx={{ mb: 3 }}>
-          <ContentDisplay content={tldr} />
-        </Box>
-
+    <Card sx={{ mb: 0 }}>
+      <CardContent sx={{ p: 0 }}>
         <Box sx={{ 
           '& .MuiAccordion-root': {
             '&:not(:last-child)': {
-              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+              borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
             },
             '&:before': {
               display: 'none',
             },
             backgroundColor: 'white',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-            borderRadius: '8px',
+            boxShadow: 'none',
+            borderRadius: 0,
             overflow: 'hidden',
-            mb: 2,
+            '&:last-child': {
+              borderBottom: 'none',
+            },
           },
           '& .MuiAccordionSummary-root': {
             minHeight: '48px',
@@ -137,6 +131,34 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             padding: 0,
           },
         }}>
+          <Accordion
+            expanded={expanded.includes('tldr')}
+            onChange={handleChange('tldr')}
+            disableGutters
+            elevation={0}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="tldr-content"
+              id="tldr-header"
+            >
+              <Typography sx={{ 
+                fontWeight: 'bold',
+                fontSize: '1.25rem',
+                color: 'text.primary',
+              }}>
+                {title}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ p: 2 }}>
+                <Typography variant="body1" color="text.secondary">
+                  {tldr}
+                </Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
           {aspects.map((aspect, index) => (
             <Accordion
               key={aspect.caption}
@@ -229,7 +251,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                       }}
                     >
                       <Link 
-                        href={`/topic/${encodeURIComponent(topic)}`}
+                        href={`/${encodeURIComponent(topic)}`}
                         style={{ 
                           textDecoration: 'none',
                           width: '100%',
@@ -277,9 +299,18 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             sx: {
               width: '400px',
               p: 2,
-              backgroundColor: '#f5f5f5',
+              backgroundColor: 'transparent',
               display: 'flex',
               flexDirection: 'column',
+              boxShadow: 'none',
+              '& .MuiBackdrop-root': {
+                backgroundColor: 'transparent',
+              },
+            },
+          }}
+          BackdropProps={{
+            sx: {
+              backgroundColor: 'transparent',
             },
           }}
         >
@@ -324,10 +355,11 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             <Box sx={{ 
               overflow: 'auto',
               flexGrow: 1,
+              backgroundColor: 'white',
             }}>
               {isLoading ? (
-                <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
-                  Generating content...
+                <Box sx={{ p: 2, textAlign: 'center' }}>
+                  <CircularProgress size={24} />
                 </Box>
               ) : detailedContent && (
                 <List disablePadding>

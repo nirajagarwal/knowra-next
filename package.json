@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "populate-db": "tsx src/scripts/populate-db.ts",
-    "test-llm": "tsx src/scripts/test-llm.ts"
+    "test-llm": "tsx src/scripts/test-llm.ts",
+    "generate-sitemap": "tsx src/scripts/generate-sitemap.ts"
   },
   "keywords": [],
   "author": "",
