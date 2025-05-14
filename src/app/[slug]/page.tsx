@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
   
   try {
     await connectDB();
-    const TopicModel = Topic as Model<any>;
+    const TopicModel = Topic as Model<TopicDocument>;
     const topic = await TopicModel.findOne({ title: decodedSlug }).lean();
 
     if (topic) {
