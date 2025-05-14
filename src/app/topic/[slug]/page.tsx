@@ -3,9 +3,21 @@ import { notFound } from 'next/navigation';
 import connectDB from '@/lib/mongodb';
 import Topic from '@/models/Topic';
 import { generateTopicContent } from '@/lib/gemini';
-import { Model } from 'mongoose';
+import { Model, Document } from 'mongoose';
 import TopicPageClient from './TopicPageClient';
 import mongoose from 'mongoose';
+
+interface TopicDocument extends Document {
+  title: string;
+  tldr: string;
+  aspects: Array<{
+    caption: string;
+    thingsToKnow: string[];
+  }>;
+  related: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface TopicPageProps {
   params: {
@@ -44,7 +56,7 @@ async function getTopic(slug: string) {
   await connectDB();
   const decodedSlug = decodeURIComponent(slug);
   
-  const TopicModel = Topic as Model<any>;
+  const TopicModel = Topic as Model<TopicDocument>;
   const topic = await TopicModel.findOne({ title: decodedSlug });
   
   if (!topic) return null;
@@ -145,13 +157,15 @@ export default async function TopicPage({ params }: TopicPageProps) {
     await connectDB();
     console.log('TopicPage: Connected to DB');
     
-    let topic = await Topic.findOne({ title: decodedSlug });
+    const TopicModel = Topic as Model<TopicDocument>;
+    let topic = await TopicModel.findOne({ title: decodedSlug });
     console.log('TopicPage: Found existing topic:', !!topic);
 
     // If topic doesn't exist, create it
     if (!topic) {
       console.log('TopicPage: Topic not found, creating new topic...');
-      topic = await createTopic(decodedSlug);
+      await createTopic(decodedSlug);
+      topic = await TopicModel.findOne({ title: decodedSlug });
       console.log('TopicPage: Created new topic:', !!topic);
     } else {
       // If topic exists but has no related items, update it
@@ -167,7 +181,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
           );
           console.log('TopicPage: Updated topic with related items');
           // Fetch the updated topic
-          topic = await Topic.findOne({ title: decodedSlug });
+          topic = await TopicModel.findOne({ title: decodedSlug });
         }
       }
     }

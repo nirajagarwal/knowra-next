@@ -1,13 +1,13 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, model, models } from 'mongoose';
 
 // Schema for aspect (from generateTopicContent)
-const aspectSchema = new mongoose.Schema({
+const aspectSchema = new Schema({
   caption: String,
   thingsToKnow: [String]
 });
 
 // Main topic schema
-const topicSchema = new mongoose.Schema({
+const topicSchema = new Schema({
   title: {
     type: String,
     required: true,
@@ -22,10 +22,10 @@ const topicSchema = new mongoose.Schema({
     type: [aspectSchema],
     default: []
   },
-  related: [{
-    type: String,
-    required: true
-  }],
+  related: {
+    type: [String],
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -42,6 +42,6 @@ topicSchema.pre('save', function(next) {
   next();
 });
 
-const Topic = mongoose.models.Topic || mongoose.model('Topic', topicSchema);
+const Topic = models.Topic || model('Topic', topicSchema);
 
 export default Topic; 
