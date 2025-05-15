@@ -18,12 +18,15 @@ import {
   IconButton,
   Drawer,
   CircularProgress,
+  Grid,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentDisplay from './ContentDisplay';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import SearchResults from './SearchResults';
+import { useSearchResults } from '@/hooks/useSearchResults';
 
 interface TopicCardProps {
   title: string;
@@ -48,6 +51,8 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
   const [isLoading, setIsLoading] = useState(false);
   const [detailedContent, setDetailedContent] = useState<DetailedContent | null>(null);
   const [loadingTopics, setLoadingTopics] = useState<string[]>([]);
+
+  const { results, isLoading: isSearchLoading } = useSearchResults(title);
 
   const handleChange = useCallback((panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(prev => 
@@ -97,9 +102,24 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
     router.push(`/${encodeURIComponent(topic)}`);
   };
 
+  const handleSearchItemClick = (type: 'book' | 'video' | 'wiki', item: any) => {
+    setSelectedItem(item.title);
+    setIsPanelOpen(true);
+    setIsLoading(true);
+    setDetailedContent(null);
+
+    // TODO: Implement detailed content generation for search items
+    // For now, just show the item's description
+    setDetailedContent({
+      caption: item.title,
+      thingsToKnow: [item.description]
+    });
+    setIsLoading(false);
+  };
+
   return (
     <Card sx={{ mb: 0 }}>
-      <CardContent sx={{ p: 0 }}>
+      <CardContent sx={{ p: 2 }}>
         <Box sx={{ 
           '& .MuiAccordion-root': {
             '&:not(:last-child)': {
@@ -115,6 +135,15 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             '&:last-child': {
               borderBottom: 'none',
             },
+            '& + .MuiAccordion-root': {
+              marginTop: 0
+            },
+            '& .MuiAccordionDetails-root': {
+              padding: 0,
+              '&:last-child': {
+                paddingBottom: 0
+              }
+            }
           },
           '& .MuiAccordionSummary-root': {
             minHeight: '48px',
@@ -238,161 +267,134 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <List disablePadding>
-                  {related.map((topic) => (
-                    <ListItem
-                      key={topic}
-                      disableGutters
-                      sx={{
-                        borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-                        '&:last-child': {
-                          borderBottom: 'none',
-                        },
-                      }}
-                    >
-                      <Link 
-                        href={`/${encodeURIComponent(topic)}`}
-                        style={{ 
-                          textDecoration: 'none',
-                          width: '100%',
-                        }}
-                        onClick={(e) => handleRelatedTopicClick(topic, e)}
-                      >
-                        <Box
-                          sx={{
-                            color: 'primary.main',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            py: 1.5,
-                            px: 2,
-                            '&:hover': {
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                            },
-                          }}
+                <Box sx={{ p: 2 }}>
+                  <Grid container spacing={1}>
+                    {related.map((topic) => (
+                      <Grid item xs={6} sm={4} key={topic}>
+                        <Link
+                          href={`/${encodeURIComponent(topic)}`}
+                          onClick={(e) => handleRelatedTopicClick(topic, e)}
+                          style={{ textDecoration: 'none' }}
                         >
-                          {topic}
-                          {loadingTopics.includes(topic) && (
-                            <CircularProgress
-                              size={16}
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center',
+                            gap: 1,
+                            color: 'primary.main',
+                            fontSize: '0.875rem',
+                            '&:hover': {
+                              color: 'primary.dark',
+                            }
+                          }}>
+                            <Typography
+                              variant="body2"
                               sx={{
-                                ml: 1,
-                                color: 'primary.main',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
                               }}
-                            />
-                          )}
-                        </Box>
-                      </Link>
-                    </ListItem>
-                  ))}
-                </List>
+                            >
+                              {topic}
+                            </Typography>
+                            {loadingTopics.includes(topic) && (
+                              <CircularProgress size={12} sx={{ flexShrink: 0 }} />
+                            )}
+                          </Box>
+                        </Link>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
               </AccordionDetails>
             </Accordion>
           )}
-        </Box>
 
-        <Drawer
-          anchor="right"
-          open={isPanelOpen}
-          onClose={handleClosePanel}
-          PaperProps={{
-            sx: {
-              width: '400px',
-              p: 2,
-              backgroundColor: 'transparent',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: 'none',
-              '& .MuiBackdrop-root': {
-                backgroundColor: 'transparent',
-              },
-            },
-          }}
-          BackdropProps={{
-            sx: {
-              backgroundColor: 'transparent',
-            },
-          }}
-        >
-          <Box sx={{ 
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-            overflow: 'hidden',
+          <SearchResults
+            books={results.books}
+            videos={results.videos}
+            wiki={results.wiki}
+            onItemClick={handleSearchItemClick}
+          />
+        </Box>
+      </CardContent>
+
+      <Drawer
+        anchor="right"
+        open={isPanelOpen}
+        onClose={handleClosePanel}
+        PaperProps={{
+          sx: {
+            width: '400px',
+            p: 2,
+            backgroundColor: 'transparent',
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
+            boxShadow: 'none',
+            '& .MuiBackdrop-root': {
+              backgroundColor: 'transparent',
+            },
+          },
+        }}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'transparent',
+          },
+        }}
+      >
+        <Box sx={{ 
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+        }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            p: 2,
+            borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            flexShrink: 0,
           }}>
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              p: 2,
-              borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-              backgroundColor: 'rgba(0, 0, 0, 0.02)',
-              flexShrink: 0,
+            <Typography sx={{ 
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              color: 'text.primary',
             }}>
-              <Typography sx={{ 
-                fontWeight: 'bold',
-                fontSize: '1rem',
-                color: 'text.primary',
-              }}>
-                {isLoading ? 'Generating...' : detailedContent?.caption || selectedItem}
-              </Typography>
-              <IconButton 
-                onClick={handleClosePanel} 
-                size="small"
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                  },
-                }}
-              >
-                <CloseIcon />
-              </IconButton>
-            </Box>
-            <Box sx={{ 
-              overflow: 'auto',
-              flexGrow: 1,
-              backgroundColor: 'white',
-            }}>
-              {isLoading ? (
-                <Box sx={{ p: 2, textAlign: 'center' }}>
-                  <CircularProgress size={24} />
-                </Box>
-              ) : detailedContent && (
-                <List disablePadding>
-                  {detailedContent.thingsToKnow.map((item, index) => (
-                    <ListItem 
-                      key={index} 
-                      disableGutters
-                      sx={{ 
-                        py: 1.5,
-                        borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-                        '&:last-child': {
-                          borderBottom: 'none',
-                        },
-                        px: 2,
-                      }}
-                    >
-                      <ListItemText 
-                        primary={item} 
-                        primaryTypographyProps={{
-                          sx: { 
-                            fontSize: '1rem',
-                            color: 'text.primary',
-                          }
-                        }}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              )}
-            </Box>
+              {isLoading ? 'Generating...' : detailedContent?.caption || selectedItem}
+            </Typography>
+            <IconButton 
+              onClick={handleClosePanel} 
+              size="small"
+              sx={{
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
           </Box>
-        </Drawer>
-      </CardContent>
+
+          <Box sx={{ 
+            p: 2,
+            flexGrow: 1,
+            overflow: 'auto',
+          }}>
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : detailedContent ? (
+              <ContentDisplay content={detailedContent.thingsToKnow.join('\n\n')} />
+            ) : null}
+          </Box>
+        </Box>
+      </Drawer>
     </Card>
   );
 });

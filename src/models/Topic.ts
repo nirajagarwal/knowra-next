@@ -6,6 +6,51 @@ const aspectSchema = new Schema({
   thingsToKnow: [String]
 });
 
+// Schema for search results
+const bookSchema = new Schema({
+  title: String,
+  authors: [String],
+  publishedYear: String,
+  description: String,
+  thumbnail: String,
+  url: String
+});
+
+const videoSchema = new Schema({
+  title: String,
+  channelName: String,
+  publishedAt: String,
+  description: String,
+  thumbnail: String,
+  url: String
+});
+
+const wikiPageSchema = new Schema({
+  title: String,
+  description: String,
+  thumbnail: String,
+  url: String
+});
+
+const searchResultsSchema = new Schema({
+  books: {
+    type: [bookSchema],
+    default: []
+  },
+  videos: {
+    type: [videoSchema],
+    default: []
+  },
+  wiki: {
+    type: [wikiPageSchema],
+    default: []
+  },
+  lastUpdated: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 // Main topic schema
 const topicSchema = new Schema({
   title: {
@@ -25,6 +70,10 @@ const topicSchema = new Schema({
   related: {
     type: [String],
     default: []
+  },
+  searchResults: {
+    type: searchResultsSchema,
+    default: () => ({})
   },
   createdAt: {
     type: Date,

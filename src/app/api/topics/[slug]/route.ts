@@ -8,25 +8,42 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const decodedSlug = decodeURIComponent(params.slug);
     await connectDB();
-
     const TopicModel = Topic as Model<any>;
-    const topic = await TopicModel.findOne({ title: decodedSlug });
-
+    const topic = await TopicModel.findOne({ title: params.slug });
+    
     if (!topic) {
-      return NextResponse.json(
-        { error: 'Topic not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
     }
 
     return NextResponse.json(topic);
   } catch (error) {
     console.error('Error fetching topic:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const data = await request.json();
+    await connectDB();
+    const TopicModel = Topic as Model<any>;
+    const topic = await TopicModel.findOneAndUpdate(
+      { title: params.slug },
+      { $set: data },
+      { new: true }
     );
+
+    if (!topic) {
+      return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(topic);
+  } catch (error) {
+    console.error('Error updating topic:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 
