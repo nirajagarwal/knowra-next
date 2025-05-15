@@ -30,7 +30,8 @@ const ContentDisplay = memo(function ContentDisplay({ content }: ContentDisplayP
           marginBottom: 1.5,
           paddingLeft: 3,
           '& li': {
-            marginBottom: 0,
+            marginBottom: 0.5,
+            lineHeight: 1.6,
           },
         },
         '& code': {
@@ -38,6 +39,7 @@ const ContentDisplay = memo(function ContentDisplay({ content }: ContentDisplayP
           padding: '0.2em 0.4em',
           borderRadius: 3,
           fontSize: '0.9em',
+          fontFamily: 'monospace',
         },
         '& pre': {
           backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -54,6 +56,30 @@ const ContentDisplay = memo(function ContentDisplay({ content }: ContentDisplayP
           margin: 0,
           paddingLeft: 1,
           color: 'text.secondary',
+        },
+        '& a': {
+          color: 'primary.main',
+          textDecoration: 'none',
+          '&:hover': {
+            textDecoration: 'underline',
+          },
+        },
+        '& img': {
+          maxWidth: '100%',
+          height: 'auto',
+          borderRadius: 4,
+        },
+        '& table': {
+          borderCollapse: 'collapse',
+          width: '100%',
+          marginBottom: 1.5,
+          '& th, & td': {
+            border: '1px solid #dfe2e5',
+            padding: '0.5em',
+          },
+          '& th': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          },
         },
       },
     }}>

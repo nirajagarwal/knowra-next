@@ -257,9 +257,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
               </AccordionSummary>
               <AccordionDetails>
                 <List disablePadding>
-                  {aspect.thingsToKnow.map((item) => (
+                  {aspect.thingsToKnow.map((point, index) => (
                     <ListItem
-                      key={item}
+                      key={index}
                       button
                       disableGutters
                       sx={{
@@ -274,14 +274,26 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                         px: 2,
                         py: 1.5,
                       }}
-                      onClick={() => handleItemClick(item)}
                     >
-                      <ListItemText 
-                        primary={item} 
+                      <ListItemText
+                        primary={
+                          <ContentDisplay content={point} />
+                        }
                         primaryTypographyProps={{
-                          sx: { 
-                            fontSize: '1rem',
-                            color: 'text.primary',
+                          variant: 'body1',
+                          color: 'text.primary',
+                          sx: {
+                            '& .markdown-body': {
+                              margin: 0,
+                              padding: 0,
+                              '& p': {
+                                margin: 0,
+                              },
+                              '& ul, & ol': {
+                                margin: 0,
+                                paddingLeft: 2,
+                              },
+                            }
                           }
                         }}
                       />
@@ -525,12 +537,25 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                           py: 1.5,
                         }}
                       >
-                        <ListItemText 
-                          primary={item.replace('- ', '')} 
+                        <ListItemText
+                          primary={
+                            <ContentDisplay content={item.replace('- ', '')} />
+                          }
                           primaryTypographyProps={{
-                            sx: { 
-                              fontSize: '1rem',
-                              color: 'text.primary',
+                            variant: 'body1',
+                            color: 'text.primary',
+                            sx: {
+                              '& .markdown-body': {
+                                margin: 0,
+                                padding: 0,
+                                '& p': {
+                                  margin: 0,
+                                },
+                                '& ul, & ol': {
+                                  margin: 0,
+                                  paddingLeft: 2,
+                                },
+                              }
                             }
                           }}
                         />
