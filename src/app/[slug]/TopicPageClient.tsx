@@ -1,6 +1,6 @@
 'use client';
 
-import { Typography, Box, Container, IconButton } from '@mui/material';
+import { Typography, Box, Container, IconButton, Link } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import HomeIcon from '@mui/icons-material/Home';
 import TopicCard from '@/components/TopicCard';
@@ -50,24 +50,22 @@ export default function TopicPageClient({ topic }: TopicPageClientProps) {
         flexShrink: 0
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton 
-            onClick={() => router.push('/')}
-            sx={{ 
-              mr: 1,
-              color: 'text.primary',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)'
-              },
-              '& .MuiSvgIcon-root': {
-                fontSize: '2.5rem'
-              }
-            }}
-          >
-            <HomeIcon />
-          </IconButton>
-          <Typography variant="h4" component="h1" sx={{ mb: 0 }}>
-            {topic.title}
-          </Typography>
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <Typography 
+              variant="h4" 
+              component="h1" 
+              sx={{ 
+                mb: 0,
+                color: 'text.primary',
+                fontWeight: 'bold',
+                '&:hover': {
+                  color: 'primary.main'
+                }
+              }}
+            >
+              KNOWRA
+            </Typography>
+          </Link>
         </Box>
         <Box sx={{ width: '300px' }}>
           <SearchBox />

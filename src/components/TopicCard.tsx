@@ -17,7 +17,6 @@ import {
   Paper,
   IconButton,
   Drawer,
-  CircularProgress,
   Grid,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -27,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SearchResults from './SearchResults';
 import { useSearchResults } from '@/hooks/useSearchResults';
+import Spinner from './Spinner';
 
 interface TopicCardProps {
   title: string;
@@ -119,7 +119,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
 
   return (
     <Card sx={{ mb: 0 }}>
-      <CardContent sx={{ p: 2 }}>
+      <CardContent sx={{ p: 0 }}>
         <Box sx={{ 
           '& .MuiAccordion-root': {
             '&:not(:last-child)': {
@@ -297,7 +297,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                               {topic}
                             </Typography>
                             {loadingTopics.includes(topic) && (
-                              <CircularProgress size={12} sx={{ flexShrink: 0 }} />
+                              <Spinner size={12} />
                             )}
                           </Box>
                         </Link>
@@ -387,7 +387,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
           }}>
             {isLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                <CircularProgress />
+                <Spinner />
               </Box>
             ) : detailedContent ? (
               <ContentDisplay content={detailedContent.thingsToKnow.join('\n\n')} />

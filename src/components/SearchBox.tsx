@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { TextField, Autocomplete, IconButton, Box, CircularProgress } from '@mui/material';
+import { TextField, Autocomplete, IconButton, Box } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { useRouter } from 'next/navigation';
 import { generateTopicContent } from '@/lib/gemini';
+import Spinner from './Spinner';
 
 export default function SearchBox() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,7 +134,7 @@ export default function SearchBox() {
         }}
       >
         {isLoading ? (
-          <CircularProgress size={20} thickness={4} sx={{ color: 'white' }} />
+          <Spinner size={20} color="inherit" />
         ) : (
           <SearchIcon />
         )}

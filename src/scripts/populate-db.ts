@@ -45,11 +45,20 @@ async function populateDatabase(limit?: number) {
         // Generate content using Gemini
         const content = await generateTopicContent(topic);
         
-        // Create new topic
+        // Create new topic with updated schema
         const newTopic = new Topic({
           title: topic,
           tldr: content.tldr,
           aspects: content.aspects,
+          related: content.related || [],
+          searchResults: {
+            books: [],
+            videos: [],
+            wiki: [],
+            lastUpdated: new Date()
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
         });
 
         await newTopic.save();
