@@ -1,3 +1,9 @@
+Science of Well-Being
+Science of Productivity
+Neuroplasticity Research
+CRISPR Gene Editing
+Ocean Plastic Remediation
+Stoicism in Modern Life
 Quantum Cryptography
 Neuromorphic Computing
 Digital Twin Technology
@@ -38,13 +44,11 @@ Ethical AI Development
 Effective Altruism
 Longtermism
 Philosophical Anarchism
-Stoicism in Modern Life
 Dark Matter Research
 Exoplanet Exploration
 Fusion Energy Breakthroughs
 Climate Change Modeling
 Genome Sequencing Advances
-Neuroplasticity Research
 Cancer Immunotherapy
 Regenerative Medicine
 Quantum Entanglement Experiments
@@ -83,7 +87,6 @@ Digital Twin Technology
 Extreme Weather Forecasting
 Antiviral Drug Development
 Nuclear Fusion Progress
-CRISPR Gene Editing
 AI-Driven Drug Discovery
 Quantum-Resistant Algorithms
 The Future of Search
@@ -98,7 +101,6 @@ Attention Economy Ethics
 The Philosophy of Gaming
 Digital Dualism
 Cognitive Bias Mitigation
-Ocean Plastic Remediation
 Sensory Deprivation Therapy
 Biofeedback Training
 Forest Bathing (Shinrin-Yoku)
@@ -109,10 +111,8 @@ The Longevity Dividend
 Neuroscience and Learning
 Genomics and Personalized Medicine
 Augmented Reality and Education
-Science of Productivity
 Science of Creativity
 Science of Decision Making
-Science of Well-Being
 Mathematics of Origami
 Psychology of Time Perception
 Quantum Biology

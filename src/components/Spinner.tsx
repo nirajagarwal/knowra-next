@@ -1,32 +1,42 @@
-import { CircularProgress, Box } from '@mui/material';
+import { Box } from '@mui/material';
+import { keyframes } from '@mui/system';
+
+const pulse = keyframes`
+  0% {
+    transform: scale(0.95);
+    background-color: #1976d2;
+  }
+  50% {
+    transform: scale(1);
+    background-color: #e3f2fd;
+  }
+  100% {
+    transform: scale(0.95);
+    background-color: #1976d2;
+  }
+`;
 
 interface SpinnerProps {
   size?: number;
   color?: 'primary' | 'secondary' | 'inherit';
 }
 
-export default function Spinner({ size = 24, color = 'primary' }: SpinnerProps) {
+export default function Spinner({ 
+  size = 24, 
+  color = 'primary'
+}: SpinnerProps) {
   return (
-    <Box sx={{ display: 'inline-flex' }}>
-      <CircularProgress
-        size={size}
-        color={color}
-        thickness={4}
+    <Box 
+      sx={{ 
+        display: 'inline-flex',
+      }}
+    >
+      <Box
         sx={{
-          animation: 'spinner-grow 0.75s linear infinite',
-          '@keyframes spinner-grow': {
-            '0%': {
-              transform: 'scale(0)',
-              opacity: 0,
-            },
-            '50%': {
-              opacity: 1,
-            },
-            '100%': {
-              transform: 'scale(1)',
-              opacity: 0,
-            },
-          },
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          animation: `${pulse} 1.5s ease-in-out infinite`,
         }}
       />
     </Box>

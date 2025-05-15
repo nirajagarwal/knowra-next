@@ -18,16 +18,17 @@ const bookSchema = new Schema({
 
 const videoSchema = new Schema({
   title: String,
-  channelName: String,
+  channelTitle: String,
   publishedAt: String,
   description: String,
-  thumbnail: String,
+  thumbnailUrl: String,
+  videoId: String,
   url: String
 });
 
 const wikiPageSchema = new Schema({
   title: String,
-  description: String,
+  extract: String,
   thumbnail: String,
   url: String
 });

@@ -71,6 +71,9 @@ class LRUCache {
 // Initialize cache
 const contentCache = new LRUCache(CACHE_CONFIG.maxSize, CACHE_CONFIG.maxAge);
 
+// Export the cache
+export { contentCache };
+
 // Rate limiting configuration
 const RATE_LIMIT = {
   maxRequests: 60, // requests per minute

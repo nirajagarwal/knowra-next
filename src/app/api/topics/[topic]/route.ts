@@ -5,12 +5,12 @@ import { Model } from 'mongoose';
 
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: { topic: string } }
 ) {
   try {
     await connectDB();
     const TopicModel = Topic as Model<any>;
-    const topic = await TopicModel.findOne({ title: params.slug });
+    const topic = await TopicModel.findOne({ title: params.topic });
     
     if (!topic) {
       return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
@@ -25,14 +25,14 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: { topic: string } }
 ) {
   try {
     const data = await request.json();
     await connectDB();
     const TopicModel = Topic as Model<any>;
     const topic = await TopicModel.findOneAndUpdate(
-      { title: params.slug },
+      { title: params.topic },
       { $set: data },
       { new: true }
     );

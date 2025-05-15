@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo, useCallback } from 'react';
+import { useState, memo, useCallback, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -18,6 +18,7 @@ import {
   IconButton,
   Drawer,
   Grid,
+  CircularProgress,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
@@ -25,8 +26,10 @@ import ContentDisplay from './ContentDisplay';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SearchResults from './SearchResults';
-import { useSearchResults } from '@/hooks/useSearchResults';
+import { useSearchResults, Book, Video, WikiPage } from '@/hooks/useSearchResults';
 import Spinner from './Spinner';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import { generateVideoContent, generateBookContent, generateWikiContent } from '@/lib/contentGenerator';
 
 interface TopicCardProps {
   title: string;
@@ -51,6 +54,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
   const [isLoading, setIsLoading] = useState(false);
   const [detailedContent, setDetailedContent] = useState<DetailedContent | null>(null);
   const [loadingTopics, setLoadingTopics] = useState<string[]>([]);
+  const [overlayContent, setOverlayContent] = useState<string>('');
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [overlayLoading, setOverlayLoading] = useState(false);
 
   const { results, isLoading: isSearchLoading } = useSearchResults(title);
 
@@ -96,29 +102,66 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
     setDetailedContent(null);
   };
 
-  const handleRelatedTopicClick = (topic: string, e: React.MouseEvent) => {
+  const handleRelatedTopicClick = async (topic: string, e: React.MouseEvent) => {
     e.preventDefault();
     setLoadingTopics(prev => [...prev, topic]);
-    router.push(`/${encodeURIComponent(topic)}`);
+    
+    try {
+      // First check if the topic exists
+      const response = await fetch(`/api/search?q=${encodeURIComponent(topic)}`);
+      const data = await response.json();
+      
+      if (!data.suggestions.includes(topic)) {
+        // Topic doesn't exist, create it
+        const createResponse = await fetch('/api/topics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ title: topic }),
+        });
+        
+        if (!createResponse.ok) {
+          throw new Error('Failed to create topic');
+        }
+
+        // Wait for the topic to be created and indexed
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Navigate to the topic
+      router.push(`/${encodeURIComponent(topic)}`);
+    } catch (error) {
+      console.error('Error handling related topic click:', error);
+      setLoadingTopics(prev => prev.filter(t => t !== topic));
+    }
   };
 
-  const handleSearchItemClick = (type: 'book' | 'video' | 'wiki', item: any) => {
-    setSelectedItem(item.title);
-    setIsPanelOpen(true);
-    setIsLoading(true);
-    setDetailedContent(null);
+  const handleSearchItemClick = async (type: 'book' | 'video' | 'wiki', item: Book | Video | WikiPage) => {
+    setOverlayContent('');
+    setShowOverlay(true);
+    setOverlayLoading(true);
 
-    // TODO: Implement detailed content generation for search items
-    // For now, just show the item's description
-    setDetailedContent({
-      caption: item.title,
-      thingsToKnow: [item.description]
-    });
-    setIsLoading(false);
+    try {
+      let content = '';
+      if (type === 'video') {
+        content = await generateVideoContent((item as Video).videoId, item.title);
+      } else if (type === 'book') {
+        content = await generateBookContent(item.title, (item as Book).authors);
+      } else {
+        content = await generateWikiContent(item.title, (item as WikiPage).extract);
+      }
+      setOverlayContent(content);
+    } catch (error) {
+      console.error('Error generating content:', error);
+      setOverlayContent('Failed to generate content. Please try again.');
+    } finally {
+      setOverlayLoading(false);
+    }
   };
 
   return (
-    <Card sx={{ mb: 0 }}>
+    <Card sx={{ maxWidth: 800, mx: 'auto', mb: 4, position: 'relative' }}>
       <CardContent sx={{ p: 0 }}>
         <Box sx={{ 
           '& .MuiAccordion-root': {
@@ -158,6 +201,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
           },
           '& .MuiAccordionDetails-root': {
             padding: 0,
+          },
+          '& .MuiAccordion-root:last-child .MuiAccordionDetails-root': {
+            paddingBottom: 0,
           },
         }}>
           <Accordion
@@ -219,7 +265,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                       sx={{
                         cursor: 'pointer',
                         '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.08)',
                         },
                         borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
                         '&:last-child': {
@@ -258,13 +304,16 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                 aria-controls="related-content"
                 id="related-header"
               >
-                <Typography sx={{ 
-                  fontWeight: 'bold',
-                  fontSize: '1rem',
-                  color: 'text.primary',
-                }}>
-                  Related Topics
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AccountTreeIcon />
+                  <Typography sx={{ 
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    color: 'text.primary',
+                  }}>
+                    Related Topics
+                  </Typography>
+                </Box>
               </AccordionSummary>
               <AccordionDetails>
                 <Box sx={{ p: 2 }}>
@@ -309,12 +358,14 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             </Accordion>
           )}
 
-          <SearchResults
-            books={results.books}
-            videos={results.videos}
-            wiki={results.wiki}
-            onItemClick={handleSearchItemClick}
-          />
+          {results.books.length > 0 || results.videos.length > 0 || results.wiki.length > 0 ? (
+            <SearchResults
+              books={results.books}
+              videos={results.videos}
+              wiki={results.wiki}
+              onItemClick={handleSearchItemClick}
+            />
+          ) : null}
         </Box>
       </CardContent>
 
@@ -395,6 +446,107 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
           </Box>
         </Box>
       </Drawer>
+
+      {/* Overlay Panel */}
+      {showOverlay && (
+        <Drawer
+          anchor="right"
+          open={showOverlay}
+          onClose={() => setShowOverlay(false)}
+          PaperProps={{
+            sx: {
+              width: '90%',
+              maxWidth: 800,
+              height: '100vh',
+              backgroundColor: 'white',
+              boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+            },
+          }}
+        >
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            height: '100%',
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              p: 2,
+              borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+              backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            }}>
+              <Typography 
+                sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1.25rem',
+                  color: 'text.primary',
+                }}
+              >
+                {overlayContent.split('\n')[0].replace('## ', '')}
+              </Typography>
+              <IconButton 
+                onClick={() => setShowOverlay(false)}
+                size="small"
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <Box sx={{ 
+              flexGrow: 1,
+              overflow: 'auto',
+            }}>
+              {overlayLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <Spinner />
+                </Box>
+              ) : (
+                <List disablePadding>
+                  {overlayContent
+                    .split('\n')
+                    .slice(2) // Skip the title and empty line
+                    .filter(line => line.startsWith('- '))
+                    .map((item, index) => (
+                      <ListItem
+                        key={index}
+                        button
+                        disableGutters
+                        sx={{
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                          },
+                          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+                          '&:last-child': {
+                            borderBottom: 'none',
+                          },
+                          px: 2,
+                          py: 1.5,
+                        }}
+                      >
+                        <ListItemText 
+                          primary={item.replace('- ', '')} 
+                          primaryTypographyProps={{
+                            sx: { 
+                              fontSize: '1rem',
+                              color: 'text.primary',
+                            }
+                          }}
+                        />
+                      </ListItem>
+                    ))}
+                </List>
+              )}
+            </Box>
+          </Box>
+        </Drawer>
+      )}
     </Card>
   );
 });

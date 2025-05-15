@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-interface Book {
+export interface Book {
   title: string;
   authors: string[];
   publishedYear: string;
@@ -9,18 +9,18 @@ interface Book {
   url: string;
 }
 
-interface Video {
+export interface Video {
   title: string;
-  channelName: string;
+  channelTitle: string;
   publishedAt: string;
   description: string;
-  thumbnail: string;
-  url: string;
+  thumbnailUrl: string;
+  videoId: string;
 }
 
-interface WikiPage {
+export interface WikiPage {
   title: string;
-  description: string;
+  extract: string;
   thumbnail: string;
   url: string;
 }

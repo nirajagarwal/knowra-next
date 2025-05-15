@@ -2,28 +2,36 @@ import { Container, Typography, Box } from '@mui/material';
 import SearchBox from '@/components/SearchBox';
 import fs from 'fs';
 import path from 'path';
-import Link from 'next/link';
-import { Card, CardContent, Grid } from '@mui/material';
 import connectDB from '@/lib/mongodb';
 import Topic from '@/models/Topic';
 import { Model } from 'mongoose';
+import FeaturedTopics from '@/components/FeaturedTopics';
+import { contentCache } from '@/lib/gemini';
 
 export default async function Home() {
   // Read topics from file
   const filePath = path.join(process.cwd(), 'featured_topics.txt');
   const content = fs.readFileSync(filePath, 'utf-8');
-  const topics = content.split('\n').filter(Boolean).slice(0, 6); // first 6 topics
+  const allTopics = content.split('\n').filter(Boolean);
+  const initialTopics = allTopics.slice(0, 6); // first 6 topics
 
   // Fetch TLDRs from DB
   await connectDB();
   const TopicModel = Topic as Model<any>;
-  const topicDocs = await TopicModel.find({ title: { $in: topics } }).select('title tldr').lean();
+  const topicDocs = await TopicModel.find({ title: { $in: allTopics } }).select('title tldr').lean();
 
-  // Map to ensure order matches file
-  const topicMap = Object.fromEntries(topicDocs.map(t => [t.title, t.tldr]));
+  // Map to ensure order matches file and cache the TLDRs
+  const topicMap = Object.fromEntries(
+    topicDocs.map(t => {
+      const tldr = t.tldr;
+      // Cache the TLDR for future use
+      contentCache.set(`tldr:${t.title}`, tldr);
+      return [t.title, tldr];
+    })
+  );
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth={false} sx={{ maxWidth: '800px' }}>
       <Box sx={{ my: 4, textAlign: 'center' }}>
         <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'medium' }}>
           KNOWRA
@@ -36,29 +44,11 @@ export default async function Home() {
           <SearchBox />
         </Box>
 
-        <Box sx={{ mt: 6 }}>
-          <Typography variant="h4" component="h2" gutterBottom>
-            Featured Topics
-          </Typography>
-          <Grid container spacing={3}>
-            {topics.map(topic => (
-              <Grid item xs={12} sm={6} key={topic}>
-                <Link href={`/${encodeURIComponent(topic)}`} style={{ textDecoration: 'none' }}>
-                  <Card sx={{ height: '100%', cursor: 'pointer' }}>
-                    <CardContent>
-                      <Typography variant="h6" component="h2" gutterBottom>
-                        {topic}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'left' }}>
-                        {topicMap[topic] ? topicMap[topic].split('.')[0] + '.' : 'No summary available.'}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
+        <FeaturedTopics
+          initialTopics={initialTopics}
+          allTopics={allTopics}
+          topicMap={topicMap}
+        />
       </Box>
     </Container>
   );

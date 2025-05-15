@@ -43,10 +43,11 @@ export async function POST(req: Request) {
     // Transform the results
     const videos = videoData.items.map((item: any) => ({
       title: item.snippet.title,
-      channelName: item.snippet.channelTitle,
+      channelTitle: item.snippet.channelTitle,
       publishedAt: new Date(item.snippet.publishedAt).toLocaleDateString('en-US', { year: 'numeric' }),
       description: item.snippet.description,
-      thumbnail: item.snippet.thumbnails.medium.url,
+      thumbnailUrl: item.snippet.thumbnails.medium.url,
+      videoId: item.id,
       url: `https://www.youtube.com/watch?v=${item.id}`
     }));
 

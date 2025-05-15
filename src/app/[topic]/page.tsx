@@ -5,12 +5,12 @@ import { getTopic } from '@/lib/topics';
 
 interface TopicPageProps {
   params: {
-    slug: string;
+    topic: string;
   };
 }
 
 export async function generateMetadata({ params }: TopicPageProps): Promise<Metadata> {
-  const topic = await getTopic(params.slug);
+  const topic = await getTopic(params.topic);
   
   if (!topic) {
     return {
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
 }
 
 export default async function TopicPage({ params }: TopicPageProps) {
-  const topic = await getTopic(params.slug);
+  const topic = await getTopic(params.topic);
 
   if (!topic) {
     notFound();

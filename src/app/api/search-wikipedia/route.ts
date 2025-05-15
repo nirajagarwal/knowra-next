@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     const wiki = Object.values(pageData.query.pages)
       .map((page: any) => ({
         title: page.title,
-        description: page.extract.split('\n')[0], // Get first paragraph
+        extract: page.extract || '',
         thumbnail: page.thumbnail?.source || '',
         url: `https://en.wikipedia.org/?curid=${page.pageid}`
       }));

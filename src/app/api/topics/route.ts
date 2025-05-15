@@ -2,15 +2,16 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Topic from '@/models/Topic';
 import { Model } from 'mongoose';
+import { generateTopicContent } from '@/lib/gemini';
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
     const { title, tldr, aspects, related } = data;
 
-    if (!title || !tldr || !aspects) {
+    if (!title) {
       return NextResponse.json(
-        { error: 'Title, TLDR, and aspects are required' },
+        { error: 'Title is required' },
         { status: 400 }
       );
     }
@@ -27,14 +28,34 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create new topic
-    const topic = new Topic({
+    // If only title is provided, generate content
+    let topicData = {
       title,
       tldr,
       aspects,
-      related: related || [], // Include related topics if provided
-    });
+      related: related || [],
+      searchResults: {
+        books: [],
+        videos: [],
+        wiki: [],
+        lastUpdated: new Date()
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
+    if (!tldr || !aspects) {
+      const content = await generateTopicContent(title);
+      topicData = {
+        ...topicData,
+        tldr: content.tldr,
+        aspects: content.aspects,
+        related: content.related || []
+      };
+    }
+
+    // Create new topic
+    const topic = new Topic(topicData);
     await topic.save();
 
     return NextResponse.json({ success: true });

@@ -33,8 +33,9 @@ export default function TopicPageClient({ topic }: TopicPageClientProps) {
 
   return (
     <Container 
-      maxWidth="lg" 
+      maxWidth={false}
       sx={{ 
+        maxWidth: '800px',
         px: 1,
         height: '100vh',
         display: 'flex',
