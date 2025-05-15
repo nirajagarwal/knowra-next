@@ -49,9 +49,11 @@ export function useSearchResults(topic: string) {
         // First try to get results from MongoDB
         const response = await fetch(`/api/topics/${encodeURIComponent(topic)}`);
         const data = await response.json();
+        console.log('MongoDB response:', data);
 
         if (data.searchResults?.books?.length || data.searchResults?.videos?.length || data.searchResults?.wiki?.length) {
           // If we have cached results, use them
+          console.log('Using cached results:', data.searchResults);
           setResults({
             books: data.searchResults.books || [],
             videos: data.searchResults.videos || [],
@@ -62,6 +64,7 @@ export function useSearchResults(topic: string) {
         }
 
         // If no cached results, fetch from APIs
+        console.log('Fetching from APIs...');
         const [booksResponse, videosResponse, pagesResponse] = await Promise.all([
           fetch('/api/search-books', {
             method: 'POST',
@@ -86,6 +89,12 @@ export function useSearchResults(topic: string) {
           pagesResponse.json()
         ]);
 
+        console.log('API responses:', {
+          books: booksData,
+          videos: videosData,
+          wiki: pagesData
+        });
+
         const newResults = {
           books: booksData.books || [],
           videos: videosData.videos || [],
@@ -93,13 +102,18 @@ export function useSearchResults(topic: string) {
         };
 
         // Update MongoDB with new results
-        await fetch(`/api/topics/${encodeURIComponent(topic)}`, {
+        console.log('Updating MongoDB with new results:', newResults);
+        const updateResponse = await fetch(`/api/topics/${encodeURIComponent(topic)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             searchResults: newResults
           })
         });
+
+        if (!updateResponse.ok) {
+          console.error('Failed to update MongoDB:', await updateResponse.text());
+        }
 
         setResults(newResults);
       } catch (err) {

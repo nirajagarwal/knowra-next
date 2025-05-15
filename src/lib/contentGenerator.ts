@@ -1,6 +1,4 @@
 import { generateDetailedContent } from './gemini';
-import { YoutubeTranscript } from 'youtube-transcript';
-import { contentCache } from './gemini';
 
 const WIKI_MAX_LENGTH = 5000; // characters
 
@@ -9,54 +7,45 @@ interface ContentResponse {
   thingsToKnow: string[];
 }
 
-export async function generateVideoContent(videoId: string, title: string): Promise<string> {
-  const cacheKey = `video:${videoId}`;
-  const cached = contentCache.get(cacheKey);
-  if (cached) return cached;
+// Simple in-memory cache
+const contentCache = new Map<string, string>();
 
+async function getCachedContent(key: string): Promise<string | null> {
+  return contentCache.get(key) || null;
+}
+
+async function cacheContent(key: string, content: string): Promise<void> {
+  contentCache.set(key, content);
+}
+
+function formatContent(content: ContentResponse): string {
+  return `## ${content.caption}\n\n${content.thingsToKnow.map(point => `- ${point}`).join('\n')}`;
+}
+
+export async function generateVideoContent(videoId: string, title: string, description: string): Promise<string> {
   try {
-    let transcriptText = '';
-    try {
-      const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
-      transcriptText = transcriptItems.map(item => item.text).join(' ');
-    } catch (transcriptError) {
-      console.error('Error fetching transcript:', transcriptError);
-      // If transcript fetch fails, return a simple format with just the title and description
-      return `## ${title}
-
-- Video Description: ${title}
-- Transcript not available for this video
-- Please watch the video directly for full content`;
-    }
-    
-    const prompt = `Based on the following YouTube video "${title}", analyze the content and provide a structured response. Focus on extracting key insights, main points, and practical applications.
-
-${transcriptText}
-
-Please provide your response in the following JSON format:
+    const prompt = `Analyze this YouTube video description and provide a structured response in the following JSON format:
 {
-  "caption": "A concise title summarizing the main focus of the video",
+  "caption": "A concise title that captures the main focus of the video",
   "thingsToKnow": [
-    "Key point or insight from the video",
-    "Important concept or finding",
-    "Practical application or takeaway",
-    "Notable quote or example",
-    "Critical analysis or perspective"
+    "Key point 1",
+    "Key point 2",
+    "Key point 3",
+    "Key point 4",
+    "Key point 5"
   ]
-}`;
+}
 
-    const response = await generateDetailedContent(title, prompt);
-    const formattedResponse = formatContent(response as ContentResponse);
-    contentCache.set(cacheKey, formattedResponse);
-    return formattedResponse;
+Video Title: ${title}
+Description: ${description}
+
+Focus on extracting the most important insights, main points, and practical applications.`;
+
+    const aiResponse = await generateDetailedContent(title, prompt);
+    return formatContent(aiResponse as ContentResponse);
   } catch (error) {
     console.error('Error generating video content:', error);
-    // Return a fallback response if content generation fails
-    return `## ${title}
-
-- Video Description: ${title}
-- Content could not be analyzed at this time
-- Please try again later or check the video directly`;
+    return `## ${title}\n\n- This video appears to be about ${title}\n- Description is currently unavailable\n- Try watching the video directly for more information\n- Consider checking the video description for details\n- You can also look for similar videos on this topic`;
   }
 }
 
@@ -121,10 +110,4 @@ Please provide your response in the following JSON format:
     console.error('Error generating wiki content:', error);
     throw error;
   }
-}
-
-function formatContent(content: ContentResponse): string {
-  return `## ${content.caption}
-
-${content.thingsToKnow.map(item => `- ${item}`).join('\n')}`;
 } 

@@ -145,7 +145,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
     try {
       let content = '';
       if (type === 'video') {
-        content = await generateVideoContent((item as Video).videoId, item.title);
+        content = await generateVideoContent((item as Video).videoId, item.title, (item as Video).description);
       } else if (type === 'book') {
         content = await generateBookContent(item.title, (item as Book).authors);
       } else {
@@ -483,7 +483,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                   color: 'text.primary',
                 }}
               >
-                {overlayContent.split('\n')[0].replace('## ', '')}
+                {overlayLoading ? 'Generating...' : overlayContent.split('\n')[0].replace('## ', '')}
               </Typography>
               <IconButton 
                 onClick={() => setShowOverlay(false)}
@@ -515,13 +515,8 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                     .map((item, index) => (
                       <ListItem
                         key={index}
-                        button
                         disableGutters
                         sx={{
-                          cursor: 'pointer',
-                          '&:hover': {
-                            backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                          },
                           borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
                           '&:last-child': {
                             borderBottom: 'none',
