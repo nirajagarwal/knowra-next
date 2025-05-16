@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     const response = await fetch(
-      `${GOOGLE_BOOKS_API}?q=${encodeURIComponent(topic)}&maxResults=6&key=${process.env.GOOGLE_API_KEY}`
+      `${GOOGLE_BOOKS_API}?q=${encodeURIComponent(topic)}&maxResults=9&key=${process.env.GOOGLE_API_KEY}`
     );
 
     if (!response.ok) {
@@ -28,10 +28,10 @@ export async function POST(req: Request) {
         authors: item.volumeInfo.authors || ['Unknown Author'],
         publishedYear: new Date(item.volumeInfo.publishedDate).getFullYear().toString(),
         description: item.volumeInfo.description,
-        thumbnail: item.volumeInfo.imageLinks?.thumbnail || '',
+        thumbnail: item.volumeInfo.imageLinks?.thumbnail?.replace('zoom=1', 'zoom=2') || '',
         url: item.volumeInfo.infoLink
       }))
-      .slice(0, 6) || [];
+      .slice(0, 9) || [];
 
     return NextResponse.json({ books });
   } catch (error) {

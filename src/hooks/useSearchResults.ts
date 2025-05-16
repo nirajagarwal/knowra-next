@@ -10,12 +10,13 @@ export interface Book {
 }
 
 export interface Video {
+  videoId: string;
   title: string;
-  channelTitle: string;
-  publishedAt: string;
   description: string;
   thumbnailUrl: string;
-  videoId: string;
+  channelTitle: string;
+  publishedAt: string;
+  url: string;
 }
 
 export interface WikiPage {

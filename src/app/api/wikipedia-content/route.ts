@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
-const MAX_CONTENT_LENGTH = 10000; // characters
+const MAX_CONTENT_LENGTH = 50000; // characters
 
 export async function POST(req: Request) {
   try {

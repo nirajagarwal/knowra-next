@@ -145,11 +145,11 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
     try {
       let content = '';
       if (type === 'video') {
-        content = await generateVideoContent((item as Video).videoId, item.title, (item as Video).description);
+        content = await generateVideoContent((item as Video).videoId, item.title, (item as Video).description, (item as Video).url);
       } else if (type === 'book') {
-        content = await generateBookContent(item.title, (item as Book).authors);
+        content = await generateBookContent(item.title, (item as Book).authors, (item as Book).url);
       } else {
-        content = await generateWikiContent(item.title, (item as WikiPage).extract);
+        content = await generateWikiContent(item.title, (item as WikiPage).extract, (item as WikiPage).url);
       }
       setOverlayContent(content);
     } catch (error) {
@@ -161,9 +161,25 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
   };
 
   return (
-    <Card sx={{ maxWidth: 800, mx: 'auto', mb: 4, position: 'relative' }}>
-      <CardContent sx={{ p: 0 }}>
+    <Card sx={{ 
+      maxWidth: 800, 
+      mx: 'auto', 
+      mb: 4, 
+      position: 'relative',
+      overflow: 'visible',
+      height: 'auto',
+      minHeight: 'auto',
+      '& .MuiCardContent-root': {
+        overflow: 'visible',
+        p: 0,
+        height: 'auto',
+        minHeight: 'auto',
+      }
+    }}>
+      <CardContent>
         <Box sx={{ 
+          height: 'auto',
+          minHeight: 'auto',
           '& .MuiAccordion-root': {
             '&:not(:last-child)': {
               borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
@@ -174,7 +190,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             backgroundColor: 'white',
             boxShadow: 'none',
             borderRadius: 0,
-            overflow: 'hidden',
+            overflow: 'visible',
+            height: 'auto',
+            minHeight: 'auto',
             '&:last-child': {
               borderBottom: 'none',
             },
@@ -183,6 +201,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             },
             '& .MuiAccordionDetails-root': {
               padding: 0,
+              overflow: 'visible',
+              height: 'auto',
+              minHeight: 'auto',
               '&:last-child': {
                 paddingBottom: 0
               }
@@ -201,6 +222,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
           },
           '& .MuiAccordionDetails-root': {
             padding: 0,
+            overflow: 'visible',
+            height: 'auto',
+            minHeight: 'auto',
           },
           '& .MuiAccordion-root:last-child .MuiAccordionDetails-root': {
             paddingBottom: 0,
@@ -246,11 +270,19 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                 expandIcon={<ExpandMoreIcon />}
                 aria-controls={`panel${index}-content`}
                 id={`panel${index}-header`}
+                sx={{
+                  minHeight: 'unset',
+                  '&.Mui-expanded': {
+                    minHeight: 'unset',
+                  },
+                  py: 0,
+                }}
               >
                 <Typography sx={{ 
                   fontWeight: 'bold',
                   fontSize: '1rem',
                   color: 'text.primary',
+                  lineHeight: 1.2,
                 }}>
                   {aspect.caption}
                 </Typography>
@@ -272,7 +304,8 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                           borderBottom: 'none',
                         },
                         px: 2,
-                        py: 1.5,
+                        py: 0,
+                        minHeight: 'unset',
                       }}
                     >
                       <ListItemText
@@ -288,6 +321,8 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                               padding: 0,
                               '& p': {
                                 margin: 0,
+                                lineHeight: 1.2,
+                                padding: 0,
                               },
                               '& ul, & ol': {
                                 margin: 0,
@@ -469,9 +504,11 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             sx: {
               width: '90%',
               maxWidth: 800,
-              height: '100vh',
+              height: '100%',
               backgroundColor: 'white',
               boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+              display: 'flex',
+              flexDirection: 'column',
             },
           }}
         >
@@ -482,25 +519,73 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
           }}>
             <Box sx={{ 
               display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
+              flexDirection: 'column',
               p: 2,
               borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
               backgroundColor: 'rgba(0, 0, 0, 0.02)',
+              flexShrink: 0,
             }}>
               <Typography 
                 sx={{ 
                   fontWeight: 'bold',
                   fontSize: '1.25rem',
                   color: 'text.primary',
+                  mb: 1,
                 }}
               >
-                {overlayLoading ? 'Generating...' : overlayContent.split('\n')[0].replace('## ', '')}
+                {overlayLoading ? 'Generating...' : overlayContent.split('\n')[0].split('|')[0].replace('## ', '')}
               </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {overlayContent.split('\n')[0].split('|')[2] === 'book' && (
+                  <MuiLink
+                    href={overlayContent.split('\n')[0].split('|')[1]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ 
+                      color: 'primary.main',
+                      textDecoration: 'none',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    Google Books
+                  </MuiLink>
+                )}
+                {overlayContent.split('\n')[0].split('|')[2] === 'video' && (
+                  <MuiLink
+                    href={overlayContent.split('\n')[0].split('|')[1]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ 
+                      color: 'primary.main',
+                      textDecoration: 'none',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    YouTube
+                  </MuiLink>
+                )}
+                {overlayContent.split('\n')[0].split('|')[2] === 'wiki' && (
+                  <MuiLink
+                    href={overlayContent.split('\n')[0].split('|')[1]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ 
+                      color: 'primary.main',
+                      textDecoration: 'none',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    Wikipedia
+                  </MuiLink>
+                )}
+              </Box>
               <IconButton 
                 onClick={() => setShowOverlay(false)}
                 size="small"
                 sx={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
                   color: 'text.secondary',
                   '&:hover': {
                     backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -512,7 +597,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             </Box>
             <Box sx={{ 
               flexGrow: 1,
-              overflow: 'auto',
+              overflow: 'visible',
             }}>
               {overlayLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -534,7 +619,12 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                             borderBottom: 'none',
                           },
                           px: 2,
-                          py: 1.5,
+                          py: 0,
+                          minHeight: 'unset',
+                          '& .MuiListItemText-root': {
+                            margin: 0,
+                            padding: 0,
+                          }
                         }}
                       >
                         <ListItemText
@@ -542,7 +632,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                             <ContentDisplay content={item.replace('- ', '')} />
                           }
                           primaryTypographyProps={{
-                            variant: 'body1',
+                            variant: 'body2',
                             color: 'text.primary',
                             sx: {
                               '& .markdown-body': {
@@ -550,10 +640,13 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                                 padding: 0,
                                 '& p': {
                                   margin: 0,
+                                  fontSize: '0.875rem',
+                                  lineHeight: 1.1,
+                                  padding: '1px 0',
                                 },
                                 '& ul, & ol': {
                                   margin: 0,
-                                  paddingLeft: 2,
+                                  paddingLeft: 1,
                                 },
                               }
                             }

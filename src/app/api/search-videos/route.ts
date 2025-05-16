@@ -12,22 +12,22 @@ export async function POST(req: Request) {
     }
 
     // First, search for videos
-    const searchResponse = await fetch(
-      `${YOUTUBE_API}?part=snippet&q=${encodeURIComponent(topic)}&type=video&maxResults=6&key=${process.env.YOUTUBE_API_KEY}`
+    const response = await fetch(
+      `${YOUTUBE_API}/search?part=snippet&q=${encodeURIComponent(topic)}&type=video&maxResults=9&key=${process.env.YOUTUBE_API_KEY}`
     );
 
-    if (!searchResponse.ok) {
+    if (!response.ok) {
       throw new Error('Failed to fetch videos');
     }
 
-    const searchData = await searchResponse.json();
+    const data = await response.json();
     
-    if (!searchData.items?.length) {
+    if (!data.items?.length) {
       return NextResponse.json({ videos: [] });
     }
 
     // Get video IDs
-    const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
+    const videoIds = data.items.map((item: any) => item.id.videoId).join(',');
 
     // Get detailed video information
     const videoResponse = await fetch(
@@ -46,10 +46,10 @@ export async function POST(req: Request) {
       channelTitle: item.snippet.channelTitle,
       publishedAt: new Date(item.snippet.publishedAt).toLocaleDateString('en-US', { year: 'numeric' }),
       description: item.snippet.description,
-      thumbnailUrl: item.snippet.thumbnails.medium.url,
+      thumbnailUrl: item.snippet.thumbnails.high.url,
       videoId: item.id,
       url: `https://www.youtube.com/watch?v=${item.id}`
-    }));
+    })).slice(0, 9) || [];
 
     return NextResponse.json({ videos });
   } catch (error) {

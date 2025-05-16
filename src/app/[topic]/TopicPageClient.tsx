@@ -37,7 +37,8 @@ export default function TopicPageClient({ topic }: TopicPageClientProps) {
       sx={{ 
         maxWidth: '800px',
         px: 1,
-        height: '100vh',
+        height: 'auto',
+        minHeight: 'auto',
         display: 'flex',
         flexDirection: 'column',
         mt: 0.5
@@ -72,7 +73,7 @@ export default function TopicPageClient({ topic }: TopicPageClientProps) {
           <SearchBox />
         </Box>
       </Box>
-      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+      <Box sx={{ flexGrow: 1, overflow: 'visible' }}>
         <TopicCard
           title={topic.title}
           tldr={topic.tldr}
