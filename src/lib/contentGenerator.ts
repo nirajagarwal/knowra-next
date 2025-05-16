@@ -32,7 +32,8 @@ export async function generateVideoContent(videoId: string, title: string, descr
     "Key point 2",
     "Key point 3",
     "Key point 4",
-    "Key point 5"
+    "Key point 5",
+    ...
   ]
 }
 
@@ -60,12 +61,13 @@ export async function generateBookContent(title: string, authors: string[]): Pro
 Please provide your response in the following JSON format:
 {
   "caption": "A concise title summarizing the main focus of the book",
-  "thingsToKnow": [
-    "Key concept or argument from the book",
-    "Important finding or insight",
-    "Practical application or lesson",
-    "Notable quote or example",
-    "Critical analysis or perspective"
+   "thingsToKnow": [
+    "Key point 1",
+    "Key point 2",
+    "Key point 3",
+    "Key point 4",
+    "Key point 5",
+    ...
   ]
 }`;
 
@@ -85,25 +87,41 @@ export async function generateWikiContent(title: string, extract: string): Promi
   if (cached) return cached;
 
   try {
-    const prompt = `Based on the following Wikipedia extract about "${title}", analyze the content and provide a structured response. Focus on key facts, historical context, and related concepts.
+    // Fetch full page content
+    const wikiResponse = await fetch('/api/wikipedia-content', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title }),
+    });
 
-Extract:
-${extract.slice(0, WIKI_MAX_LENGTH)}
+    if (!wikiResponse.ok) {
+      throw new Error('Failed to fetch Wikipedia content');
+    }
+
+    const { content: fullContent } = await wikiResponse.json();
+
+    const prompt = `Based on the following Wikipedia content about "${title}", analyze the content and provide a structured response. Focus on key facts, historical context, and related concepts.
+
+Content:
+${fullContent}
 
 Please provide your response in the following JSON format:
 {
-  "caption": "A concise title summarizing the main focus of the Wikipedia article",
-  "thingsToKnow": [
-    "Key fact or finding from the article",
-    "Important historical context",
-    "Notable development or event",
-    "Related concept or connection",
-    "Critical analysis or perspective"
+  "caption": "Wikipedia article title",
+    "thingsToKnow": [
+    "Key point 1",
+    "Key point 2",
+    "Key point 3",
+    "Key point 4",
+    "Key point 5",
+    ...
   ]
 }`;
 
-    const response = await generateDetailedContent(title, prompt);
-    const formattedResponse = formatContent(response as ContentResponse);
+    const aiResponse = await generateDetailedContent(title, prompt);
+    const formattedResponse = formatContent(aiResponse as ContentResponse);
     contentCache.set(cacheKey, formattedResponse);
     return formattedResponse;
   } catch (error) {
