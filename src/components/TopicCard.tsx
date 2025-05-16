@@ -69,13 +69,15 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
   }, []);
 
   const handleItemClick = async (item: string) => {
+    console.log('handleItemClick called with:', item);
     setSelectedItem(item);
-    setIsPanelOpen(true);
-    setIsLoading(true);
-    setDetailedContent(null);
+    setShowOverlay(true);
+    setOverlayLoading(true);
+    setOverlayContent('');
 
     try {
-      const response = await fetch('/api/generate-detailed-content', {
+      console.log('Making API request to /api/generate');
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,11 +90,13 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
       }
 
       const data = await response.json();
-      setDetailedContent(data);
+      console.log('Received API response:', data);
+      setOverlayContent(`## ${data.caption}\n\n${data.thingsToKnow.map(point => `- ${point}`).join('\n')}`);
     } catch (error) {
       console.error('Error generating content:', error);
+      setOverlayContent('Failed to generate content. Please try again.');
     } finally {
-      setIsLoading(false);
+      setOverlayLoading(false);
     }
   };
 
@@ -294,6 +298,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                       key={index}
                       button
                       disableGutters
+                      onClick={() => handleItemClick(point)}
                       sx={{
                         cursor: 'pointer',
                         '&:hover': {
@@ -304,7 +309,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                           borderBottom: 'none',
                         },
                         px: 2,
-                        py: 0,
+                        py: 1,
                         minHeight: 'unset',
                       }}
                     >
@@ -503,7 +508,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
           PaperProps={{
             sx: {
               width: '90%',
-              maxWidth: 800,
+              maxWidth: 600,
               height: '100%',
               backgroundColor: 'white',
               boxShadow: '0 0 10px rgba(0,0,0,0.1)',
@@ -619,7 +624,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                             borderBottom: 'none',
                           },
                           px: 2,
-                          py: 0,
+                          py: 1,
                           minHeight: 'unset',
                           '& .MuiListItemText-root': {
                             margin: 0,
@@ -632,7 +637,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                             <ContentDisplay content={item.replace('- ', '')} />
                           }
                           primaryTypographyProps={{
-                            variant: 'body2',
+                            variant: 'body1',
                             color: 'text.primary',
                             sx: {
                               '& .markdown-body': {
@@ -640,8 +645,8 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                                 padding: 0,
                                 '& p': {
                                   margin: 0,
-                                  fontSize: '0.875rem',
-                                  lineHeight: 1.1,
+                                  fontSize: '1rem',
+                                  lineHeight: 1.4,
                                   padding: '1px 0',
                                 },
                                 '& ul, & ol': {

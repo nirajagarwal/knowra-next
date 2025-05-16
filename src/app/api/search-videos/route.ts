@@ -1,55 +1,56 @@
 import { NextResponse } from 'next/server';
 
-const YOUTUBE_API = 'https://www.googleapis.com/youtube/v3/search';
-const YOUTUBE_VIDEO_API = 'https://www.googleapis.com/youtube/v3/videos';
+const BRAVE_VIDEO_API = 'https://api.search.brave.com/res/v1/videos/search';
 
 export async function POST(req: Request) {
   try {
     const { topic } = await req.json();
 
-    if (!process.env.YOUTUBE_API_KEY) {
-      throw new Error('YouTube API key not found');
+    if (!process.env.BRAVE_API_KEY) {
+      throw new Error('Brave API key not found');
     }
 
-    // First, search for videos
-    const response = await fetch(
-      `${YOUTUBE_API}/search?part=snippet&q=${encodeURIComponent(topic)}&type=video&maxResults=9&key=${process.env.YOUTUBE_API_KEY}`
-    );
+    const searchUrl = `${BRAVE_VIDEO_API}?q=${encodeURIComponent(topic)}&count=9&search_lang=en&safesearch=moderate`;
+    console.log('Searching Brave with URL:', searchUrl);
+
+    const response = await fetch(searchUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip',
+        'X-Subscription-Token': process.env.BRAVE_API_KEY
+      }
+    });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch videos');
+      const errorText = await response.text();
+      console.error('Brave API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Failed to fetch videos: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    
-    if (!data.items?.length) {
+    console.log('Brave API response:', data);
+
+    if (!data.results?.length) {
+      console.log('No video results found');
       return NextResponse.json({ videos: [] });
     }
 
-    // Get video IDs
-    const videoIds = data.items.map((item: any) => item.id.videoId).join(',');
+    // Transform the results to match our Video interface
+    const videos = data.results.map((item: any) => ({
+      title: item.title,
+      channelTitle: item.video.creator || item.video.publisher,
+      publishedAt: item.age,
+      description: item.description,
+      thumbnailUrl: item.thumbnail.src,
+      videoId: item.url, // Using the URL as the ID since Brave doesn't provide a separate video ID
+      url: item.url
+    })).slice(0, 9);
 
-    // Get detailed video information
-    const videoResponse = await fetch(
-      `${YOUTUBE_VIDEO_API}?part=snippet,contentDetails&id=${videoIds}&key=${process.env.YOUTUBE_API_KEY}`
-    );
-
-    if (!videoResponse.ok) {
-      throw new Error('Failed to fetch video details');
-    }
-
-    const videoData = await videoResponse.json();
-
-    // Transform the results
-    const videos = videoData.items.map((item: any) => ({
-      title: item.snippet.title,
-      channelTitle: item.snippet.channelTitle,
-      publishedAt: new Date(item.snippet.publishedAt).toLocaleDateString('en-US', { year: 'numeric' }),
-      description: item.snippet.description,
-      thumbnailUrl: item.snippet.thumbnails.high.url,
-      videoId: item.id,
-      url: `https://www.youtube.com/watch?v=${item.id}`
-    })).slice(0, 9) || [];
+    console.log('Transformed videos:', videos);
 
     return NextResponse.json({ videos });
   } catch (error) {

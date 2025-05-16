@@ -83,7 +83,12 @@ const ContentDisplay = memo(function ContentDisplay({ content }: ContentDisplayP
         },
       },
     }}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ node, ...props }) => <span {...props} />,
+        }}
+      >
         {content}
       </ReactMarkdown>
     </Box>
