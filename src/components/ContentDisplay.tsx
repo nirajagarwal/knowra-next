@@ -7,9 +7,11 @@ import { Typography, Box } from '@mui/material';
 
 interface ContentDisplayProps {
   content: string;
+  renderParagraphsAsSpans?: boolean;
+  compact?: boolean;
 }
 
-const ContentDisplay = memo(function ContentDisplay({ content }: ContentDisplayProps) {
+const ContentDisplay = memo(function ContentDisplay({ content, renderParagraphsAsSpans, compact }: ContentDisplayProps) {
   if (!content || typeof content !== 'string') {
     return null;
   }
@@ -23,15 +25,21 @@ const ContentDisplay = memo(function ContentDisplay({ content }: ContentDisplayP
           fontWeight: 'bold',
         },
         '& p': {
-          marginBottom: 1.5,
-          lineHeight: 1.6,
+          marginBottom: compact ? 0 : 1.5,
+          lineHeight: compact ? 1.2 : 1.6,
+          margin: compact ? 0 : undefined,
+          padding: compact ? 0 : undefined,
         },
         '& ul, & ol': {
-          marginBottom: 1.5,
-          paddingLeft: 3,
+          marginBottom: compact ? 0 : 1.5,
+          paddingLeft: compact ? 0 : 3,
+          margin: compact ? 0 : undefined,
+          padding: compact ? 0 : undefined,
           '& li': {
-            marginBottom: 0.5,
-            lineHeight: 1.6,
+            marginBottom: compact ? 0 : 0.5,
+            lineHeight: compact ? 1.2 : 1.6,
+            margin: compact ? 0 : undefined,
+            padding: compact ? 0 : undefined,
           },
         },
         '& code': {
@@ -85,9 +93,9 @@ const ContentDisplay = memo(function ContentDisplay({ content }: ContentDisplayP
     }}>
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
-        components={{
+        components={renderParagraphsAsSpans ? {
           p: ({ node, ...props }) => <span {...props} />,
-        }}
+        } : {}}
       >
         {content}
       </ReactMarkdown>

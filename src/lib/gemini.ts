@@ -107,6 +107,29 @@ function sanitizeJsonString(str: string): string {
   return str;
 }
 
+// Function to generate a safe cache key
+function generateSafeCacheKey(parts: string[]): string {
+  return parts
+    .filter(Boolean)
+    .map(part => 
+      // For each part, either use it directly if it's short
+      // or create a hash if it's long
+      part.length < 100 ? part : `${part.substring(0, 50)}_${hashString(part)}`
+    )
+    .join(':');
+}
+
+// Simple string hashing function
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16);
+}
+
 export async function generateTopicContent(topic: string) {
   if (isRateLimited()) {
     throw new Error('Rate limit exceeded. Please try again later.');
@@ -186,12 +209,12 @@ Additional instructions:
   }
 }
 
-export async function generateDetailedContent(topic: string, text: string) {
+export async function generateDetailedContent(topic: string, text: string, customPrompt?: string) {
   if (isRateLimited()) {
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  const cacheKey = `${topic}:${text}`;
+  const cacheKey = generateSafeCacheKey(['detailed', topic, text]);
   const cachedContent = contentCache.get(cacheKey);
   if (cachedContent) {
     return JSON.parse(cachedContent);
@@ -204,9 +227,8 @@ export async function generateDetailedContent(topic: string, text: string) {
     }
   });
 
-  const prompt = `I am learning about "${topic}". In this context tell me more about: ${text} in this exact JSON format:
+  const prompt = customPrompt || `I am learning about "${topic}". In this context tell me more about: ${text} in this exact JSON format:
   {
-    "tldr": "A summary",
     "caption": "Short title",
     "thingsToKnow": ["Knowledge nugget 1", "Knowledge nugget 2", "Knowledge nugget 3", ...]
   }
@@ -222,7 +244,7 @@ export async function generateDetailedContent(topic: string, text: string) {
     const content = JSON.parse(cleanedText);
 
     // Basic validation
-    if (!content.tldr || !content.caption || !Array.isArray(content.thingsToKnow)) {
+    if (!content.caption || !Array.isArray(content.thingsToKnow)) {
       throw new Error('Invalid response structure');
     }
 

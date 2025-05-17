@@ -58,7 +58,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
   const [showOverlay, setShowOverlay] = useState(false);
   const [overlayLoading, setOverlayLoading] = useState(false);
 
-  const { results, isLoading: isSearchLoading } = useSearchResults(title);
+  const { results, isLoading: isSearchLoading, fetchSectionResults } = useSearchResults(title);
 
   const handleChange = useCallback((panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(prev => 
@@ -68,43 +68,41 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
     );
   }, []);
 
-  const handleItemClick = async (item: string) => {
-    console.log('handleItemClick called with:', item);
-    setSelectedItem(item);
-    setShowOverlay(true);
-    setOverlayLoading(true);
-    setOverlayContent('');
+  const handleItemClick = useCallback(async (text: string) => {
+    setSelectedItem(text);
+    setIsPanelOpen(true);
+    setIsLoading(true);
+    setDetailedContent(null);
 
     try {
-      console.log('Making API request to /api/generate');
-      const response = await fetch('/api/generate', {
+      const response = await fetch('/api/generate-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ item }),
+        body: JSON.stringify({ topic: title, text }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate content');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch detailed content');
       }
 
-      const data = await response.json();
-      console.log('Received API response:', data);
-      setOverlayContent(`## ${data.caption}\n\n${data.thingsToKnow.map(point => `- ${point}`).join('\n')}`);
+      const content: DetailedContent = await response.json();
+      console.log('Fetched detailed content for aspect item:', content);
+      setDetailedContent(content);
     } catch (error) {
-      console.error('Error generating content:', error);
-      setOverlayContent('Failed to generate content. Please try again.');
+      console.error('Error generating detailed content:', error);
     } finally {
-      setOverlayLoading(false);
+      setIsLoading(false);
     }
-  };
+  }, [title]);
 
-  const handleClosePanel = () => {
+  const handleClosePanel = useCallback(() => {
     setIsPanelOpen(false);
     setSelectedItem('');
     setDetailedContent(null);
-  };
+  }, []);
 
   const handleRelatedTopicClick = async (topic: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -151,7 +149,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
       if (type === 'video') {
         content = await generateVideoContent((item as Video).videoId, item.title, (item as Video).description, (item as Video).url);
       } else if (type === 'book') {
-        content = await generateBookContent(item.title, (item as Book).authors, (item as Book).url);
+        content = await generateBookContent(item.title, (item as Book).authors, (item as Book).description, (item as Book).url);
       } else {
         content = await generateWikiContent(item.title, (item as WikiPage).extract, (item as WikiPage).url);
       }
@@ -163,6 +161,10 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
       setOverlayLoading(false);
     }
   };
+
+  const handleSectionExpand = useCallback((section: 'books' | 'videos' | 'wiki') => {
+    fetchSectionResults(section);
+  }, [fetchSectionResults]);
 
   return (
     <Card sx={{ 
@@ -315,9 +317,10 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                     >
                       <ListItemText
                         primary={
-                          <ContentDisplay content={point} />
+                          <ContentDisplay content={point} renderParagraphsAsSpans={true} />
                         }
                         primaryTypographyProps={{
+                          component: 'div',
                           variant: 'body1',
                           color: 'text.primary',
                           sx: {
@@ -410,14 +413,14 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
             </Accordion>
           )}
 
-          {results.books.length > 0 || results.videos.length > 0 || results.wiki.length > 0 ? (
-            <SearchResults
-              books={results.books}
-              videos={results.videos}
-              wiki={results.wiki}
-              onItemClick={handleSearchItemClick}
-            />
-          ) : null}
+          <SearchResults
+            books={results.books}
+            videos={results.videos}
+            wiki={results.wiki}
+            onItemClick={handleSearchItemClick}
+            onSectionExpand={handleSectionExpand}
+            isLoading={isSearchLoading}
+          />
         </Box>
       </CardContent>
 
@@ -427,52 +430,46 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
         onClose={handleClosePanel}
         PaperProps={{
           sx: {
-            width: '400px',
-            p: 2,
-            backgroundColor: 'transparent',
+            width: '90%',
+            maxWidth: 600,
+            height: '100%',
+            backgroundColor: 'white',
+            boxShadow: '0 0 10px rgba(0,0,0,0.1)',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: 'none',
-            '& .MuiBackdrop-root': {
-              backgroundColor: 'transparent',
-            },
-          },
-        }}
-        BackdropProps={{
-          sx: {
-            backgroundColor: 'transparent',
           },
         }}
       >
         <Box sx={{ 
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-          overflow: 'hidden',
-          display: 'flex',
+          display: 'flex', 
           flexDirection: 'column',
           height: '100%',
         }}>
           <Box sx={{ 
             display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
+            flexDirection: 'column',
             p: 2,
             borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(0, 0, 0, 0.02)',
             flexShrink: 0,
           }}>
-            <Typography sx={{ 
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              color: 'text.primary',
-            }}>
+            <Typography 
+              sx={{ 
+                fontWeight: 'bold',
+                fontSize: '1.25rem',
+                color: 'text.primary',
+                mb: 1,
+              }}
+            >
               {isLoading ? 'Generating...' : detailedContent?.caption || selectedItem}
             </Typography>
             <IconButton 
-              onClick={handleClosePanel} 
+              onClick={handleClosePanel}
               size="small"
               sx={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
                 color: 'text.secondary',
                 '&:hover': {
                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -482,19 +479,77 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
               <CloseIcon />
             </IconButton>
           </Box>
-
           <Box sx={{ 
-            p: 2,
             flexGrow: 1,
-            overflow: 'auto',
+            overflow: 'visible',
           }}>
             {isLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
                 <Spinner />
               </Box>
             ) : detailedContent ? (
-              <ContentDisplay content={detailedContent.thingsToKnow.join('\n\n')} />
-            ) : null}
+              <List disablePadding>
+                {detailedContent.thingsToKnow.map((item, index) => (
+                  <ListItem
+                    key={index}
+                    disableGutters
+                    sx={{
+                      borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+                      '&:last-child': {
+                        borderBottom: 'none',
+                      },
+                      px: 2,
+                      py: 0.75,
+                      minHeight: 'unset',
+                      '& .MuiListItemText-root': {
+                        margin: 0,
+                        padding: 0,
+                      }
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <ContentDisplay 
+                          content={item} 
+                          renderParagraphsAsSpans={true}
+                          compact={true}
+                        />
+                      }
+                      primaryTypographyProps={{
+                        component: 'div',
+                        variant: 'body1',
+                        color: 'text.primary',
+                        sx: {
+                          '& .markdown-body': {
+                            margin: 0,
+                            padding: 0,
+                            lineHeight: 1.2,
+                            '& p': {
+                              margin: 0,
+                              fontSize: '0.95rem',
+                              lineHeight: 1.3,
+                              padding: 0,
+                            },
+                            '& ul, & ol': {
+                              margin: 0,
+                              padding: 0,
+                              lineHeight: 1.2,
+                            },
+                            '& li': {
+                              margin: 0,
+                              padding: 0,
+                              lineHeight: 1.2,
+                            }
+                          }
+                        }
+                      }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography sx={{ p: 2, color: 'text.secondary' }}>No content available.</Typography>
+            )}
           </Box>
         </Box>
       </Drawer>
@@ -624,7 +679,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                             borderBottom: 'none',
                           },
                           px: 2,
-                          py: 1,
+                          py: 0.75,
                           minHeight: 'unset',
                           '& .MuiListItemText-root': {
                             margin: 0,
@@ -634,9 +689,14 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                       >
                         <ListItemText
                           primary={
-                            <ContentDisplay content={item.replace('- ', '')} />
+                            <ContentDisplay 
+                              content={item.replace('- ', '')} 
+                              compact={true}
+                              renderParagraphsAsSpans={true}
+                            />
                           }
                           primaryTypographyProps={{
+                            component: 'div',
                             variant: 'body1',
                             color: 'text.primary',
                             sx: {
@@ -645,14 +705,20 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                                 padding: 0,
                                 '& p': {
                                   margin: 0,
-                                  fontSize: '1rem',
-                                  lineHeight: 1.4,
-                                  padding: '1px 0',
+                                  fontSize: '0.95rem',
+                                  lineHeight: 1.3,
+                                  padding: 0,
                                 },
                                 '& ul, & ol': {
                                   margin: 0,
-                                  paddingLeft: 1,
+                                  padding: 0,
+                                  lineHeight: 1.2,
                                 },
+                                '& li': {
+                                  margin: 0,
+                                  padding: 0,
+                                  lineHeight: 1.2,
+                                }
                               }
                             }
                           }}

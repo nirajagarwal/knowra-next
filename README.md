@@ -9,7 +9,7 @@ Knowra is an interactive learning platform built with Next.js, Material UI, and 
 - **Admin Tool:** Populate the database with topics in bulk using the included script
 - **Caching:** In-memory and DB caching for generated content
 - **SEO Optimized:** Dynamic metadata, Open Graph, and descriptions
-- **Google Analytics:** Integrated for tracking user engagement
+- **Vercel Analytics:** Integrated for tracking user engagement
 - **Responsive UI:** Built with Material UI, fully mobile-friendly
 - **Markdown Support:** Renders markdown with GFM (tables, lists, etc)
 - **TypeScript:** Full type safety and better development experience
@@ -29,6 +29,7 @@ Knowra is an interactive learning platform built with Next.js, Material UI, and 
   - ESLint 8.57.0
   - TailwindCSS 3.4.1
   - ts-node 10.9.2
+  - tsx 4.19.4
 
 ## Getting Started
 
@@ -83,6 +84,8 @@ npm run test-llm "Your Topic Here"
 - `npm run lint` — Run ESLint for code quality
 - `npm run populate-db` — Populate DB with topics from `featured_topics.txt`
 - `npm run test-llm "Topic"` — Test Gemini AI for a single topic
+- `npm run generate-sitemap` — Generate `sitemap.xml` for SEO
+- `npm run clear-search-results` — Clears cached search results (books, videos, wiki) from all topics in the database
 
 ## Project Structure
 ```
@@ -94,13 +97,16 @@ src/
 │   ├── ContentDisplay.tsx # Markdown renderer
 │   ├── SearchBox.tsx     # Search component
 │   └── TopicCard.tsx     # Topic display component
+├── hooks/                 # Custom React hooks
 ├── lib/                   # Utility functions
 │   ├── mongodb.ts        # Database connection
 │   └── gemini.ts         # AI integration
 ├── models/               # Mongoose schemas
 └── scripts/             # Utility scripts
     ├── populate-db.ts   # Database population
-    └── test-llm.ts      # AI testing
+    ├── test-llm.ts      # AI testing
+    ├── generate-sitemap.ts # Sitemap generation
+    └── clear-search-results.ts # Script for clearing search results
 ```
 
 ## Development Guidelines

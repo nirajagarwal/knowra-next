@@ -20,15 +20,29 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import { Book, Video, WikiPage } from '@/hooks/useSearchResults';
+import Spinner from './Spinner';
 
 interface SearchResultsProps {
   books: Book[];
   videos: Video[];
   wiki: WikiPage[];
   onItemClick: (type: 'book' | 'video' | 'wiki', item: Book | Video | WikiPage) => void;
+  onSectionExpand: (section: 'books' | 'videos' | 'wiki') => void;
+  isLoading: {
+    books: boolean;
+    videos: boolean;
+    wiki: boolean;
+  };
 }
 
-export default function SearchResults({ books, videos, wiki, onItemClick }: SearchResultsProps) {
+export default function SearchResults({ 
+  books, 
+  videos, 
+  wiki, 
+  onItemClick,
+  onSectionExpand,
+  isLoading 
+}: SearchResultsProps) {
   const [expanded, setExpanded] = useState<string[]>([]);
   const [bookPage, setBookPage] = useState(0);
   const [videoPage, setVideoPage] = useState(0);
@@ -39,6 +53,10 @@ export default function SearchResults({ books, videos, wiki, onItemClick }: Sear
         ? [...prev, panel]
         : prev.filter(p => p !== panel)
     );
+    
+    if (isExpanded) {
+      onSectionExpand(panel as 'books' | 'videos' | 'wiki');
+    }
   };
 
   function truncateText(text: string | undefined, maxSentences: number = 3): string {
@@ -220,61 +238,67 @@ export default function SearchResults({ books, videos, wiki, onItemClick }: Sear
           </Box>
         </AccordionSummary>
         <AccordionDetails>
-          <List sx={{ overflow: 'visible' }}>
-            {wiki?.map((page, index) => (
-              <ListItem 
-                key={index}
-                sx={{ 
-                  cursor: 'pointer',
-                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.08)' },
-                  alignItems: 'flex-start',
-                  px: 2,
-                  py: 1.5,
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-                  '&:last-child': {
-                    borderBottom: 'none',
-                  },
-                }}
-                onClick={() => onItemClick('wiki', page)}
-              >
-                <ListItemText
-                  primary={page.title}
-                  secondary={
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {truncateText(page.extract)}
-                      </Typography>
-                    </Box>
-                  }
+          {isLoading.wiki ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <Spinner />
+            </Box>
+          ) : (
+            <List sx={{ overflow: 'visible' }}>
+              {wiki?.map((page, index) => (
+                <ListItem 
+                  key={index}
                   sx={{ 
-                    m: 0,
-                    '& .MuiListItemText-primary': {
-                      mb: 0.5,
-                    }
+                    cursor: 'pointer',
+                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.08)' },
+                    alignItems: 'flex-start',
+                    px: 2,
+                    py: 1.5,
+                    borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+                    '&:last-child': {
+                      borderBottom: 'none',
+                    },
                   }}
-                />
-                {page.thumbnail && (
-                  <Box
-                    component="img"
-                    src={page.thumbnail}
-                    alt={page.title}
-                    sx={{
-                      width: { xs: 80, sm: 120 },
-                      height: 'auto',
-                      ml: 2,
-                      objectFit: 'contain',
-                      borderRadius: '4px',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                      transition: 'transform 0.2s ease-in-out',
-                      '&:hover': {
-                        transform: 'scale(1.02)',
+                  onClick={() => onItemClick('wiki', page)}
+                >
+                  <ListItemText
+                    primary={page.title}
+                    secondary={
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {truncateText(page.extract)}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ 
+                      m: 0,
+                      '& .MuiListItemText-primary': {
+                        mb: 0.5,
                       }
                     }}
                   />
-                )}
-              </ListItem>
-            ))}
-          </List>
+                  {page.thumbnail && (
+                    <Box
+                      component="img"
+                      src={page.thumbnail}
+                      alt={page.title}
+                      sx={{
+                        width: { xs: 80, sm: 120 },
+                        height: 'auto',
+                        ml: 2,
+                        objectFit: 'contain',
+                        borderRadius: '4px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        transition: 'transform 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'scale(1.02)',
+                        }
+                      }}
+                    />
+                  )}
+                </ListItem>
+              ))}
+            </List>
+          )}
         </AccordionDetails>
       </Accordion>
 
@@ -299,7 +323,13 @@ export default function SearchResults({ books, videos, wiki, onItemClick }: Sear
           </Box>
         </AccordionSummary>
         <AccordionDetails>
-          {renderMediaSlider(books, 'book', bookPage, maxBookPage)}
+          {isLoading.books ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <Spinner />
+            </Box>
+          ) : (
+            renderMediaSlider(books, 'book', bookPage, maxBookPage)
+          )}
         </AccordionDetails>
       </Accordion>
 
@@ -324,7 +354,13 @@ export default function SearchResults({ books, videos, wiki, onItemClick }: Sear
           </Box>
         </AccordionSummary>
         <AccordionDetails>
-          {renderMediaSlider(videos, 'video', videoPage, maxVideoPage)}
+          {isLoading.videos ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <Spinner />
+            </Box>
+          ) : (
+            renderMediaSlider(videos, 'video', videoPage, maxVideoPage)
+          )}
         </AccordionDetails>
       </Accordion>
     </>

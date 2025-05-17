@@ -11,7 +11,6 @@ export async function POST(req: Request) {
     }
 
     const searchUrl = `${BRAVE_VIDEO_API}?q=${encodeURIComponent(topic)}&count=9&search_lang=en&safesearch=moderate`;
-    console.log('Searching Brave with URL:', searchUrl);
 
     const response = await fetch(searchUrl, {
       headers: {
@@ -32,10 +31,8 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json();
-    console.log('Brave API response:', data);
 
     if (!data.results?.length) {
-      console.log('No video results found');
       return NextResponse.json({ videos: [] });
     }
 
@@ -49,8 +46,6 @@ export async function POST(req: Request) {
       videoId: item.url, // Using the URL as the ID since Brave doesn't provide a separate video ID
       url: item.url
     })).slice(0, 9);
-
-    console.log('Transformed videos:', videos);
 
     return NextResponse.json({ videos });
   } catch (error) {
