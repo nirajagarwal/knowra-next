@@ -91,7 +91,7 @@ export default function SearchResults({
     const visibleItems = items.slice(startIndex, startIndex + itemsPerPage);
 
     return (
-      <Box sx={{ position: 'relative', width: '100%', px: 2 }}>
+      <Box sx={{ position: 'relative', width: '100%', px: 2, pb: 1 }}>
         <Grid container spacing={2}>
           {visibleItems.map((item, index) => (
             <Grid item xs={4} key={index}>
@@ -350,7 +350,7 @@ export default function SearchResults({
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <VideoLibraryIcon />
-            <Typography>Videos</Typography>
+            <Typography>Videos {videos.length > 0 ? `(${videos.length})` : ''}</Typography>
           </Box>
         </AccordionSummary>
         <AccordionDetails>
@@ -358,8 +358,12 @@ export default function SearchResults({
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
               <Spinner />
             </Box>
-          ) : (
+          ) : videos.length > 0 ? (
             renderMediaSlider(videos, 'video', videoPage, maxVideoPage)
+          ) : (
+            <Box sx={{ textAlign: 'center', p: 2 }}>
+              <Typography color="text.secondary">No videos found</Typography>
+            </Box>
           )}
         </AccordionDetails>
       </Accordion>

@@ -145,7 +145,7 @@ export async function generateTopicContent(topic: string) {
   const prompt = `Generate a learning guide for broad and deep understanding of various aspects of the topic "${topic}". 
   Also provide a list of related words, entities, or concepts. Use this exact JSON format:
 {
-  "tldr": "Three sentences with the main thingsto know about the topic",
+  "tldr": "Three sentences with the main things to know about the topic",
   "aspects": [
     {
       "caption": "Aspect name",

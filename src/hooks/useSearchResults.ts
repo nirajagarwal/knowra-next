@@ -78,7 +78,13 @@ export function useSearchResults(topic: string) {
       });
 
       const apiData = await apiResponse.json();
+      console.log(`${section} API response:`, apiData);
+      
       const newResults = apiData[section] || [];
+      console.log(`Extracted ${section} results:`, {
+        resultCount: newResults.length,
+        firstResult: newResults[0] ? 'Present' : 'Missing'
+      });
 
       // Update MongoDB with new results
       const updateResponse = await fetch(`/api/topics/${encodeURIComponent(topic)}`, {
