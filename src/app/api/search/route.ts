@@ -3,6 +3,11 @@ import connectDB from '@/lib/mongodb';
 import Topic from '@/models/Topic';
 import { Model } from 'mongoose';
 
+interface TopicResult {
+  title: string;
+  slug: string;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -19,10 +24,13 @@ export async function GET(request: Request) {
     const topics = await TopicModel.find({
       title: { $regex: query, $options: 'i' }
     })
-    .select('title')
+    .select('title slug')
     .limit(10);
 
-    const suggestions = topics.map(topic => topic.title);
+    const suggestions = topics.map(topic => ({
+      title: topic.title,
+      slug: topic.slug
+    }));
 
     return NextResponse.json({ suggestions });
   } catch (error) {

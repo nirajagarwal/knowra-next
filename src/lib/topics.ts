@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 
 interface TopicDocument extends Document {
   title: string;
+  slug: string;
   tldr: string;
   aspects: Array<{
     caption: string;
@@ -16,12 +17,19 @@ interface TopicDocument extends Document {
   updatedAt: Date;
 }
 
-export async function getTopic(slug: string) {
+export async function getTopic(slugOrTitle: string) {
   await connectDB();
-  const decodedSlug = decodeURIComponent(slug);
+  const decodedValue = decodeURIComponent(slugOrTitle);
   
   const TopicModel = Topic as Model<TopicDocument>;
-  const topic = await TopicModel.findOne({ title: decodedSlug });
+  
+  // Try to find by slug first
+  let topic = await TopicModel.findOne({ slug: decodedValue.toLowerCase() });
+  
+  // If not found by slug, try to find by title (for backward compatibility)
+  if (!topic) {
+    topic = await TopicModel.findOne({ title: decodedValue });
+  }
   
   if (!topic) return null;
 
@@ -31,6 +39,7 @@ export async function getTopic(slug: string) {
   // Ensure the data structure is valid
   return {
     title: String(plainTopic.title || ''),
+    slug: String(plainTopic.slug || ''),
     tldr: String(plainTopic.tldr || ''),
     aspects: Array.isArray(plainTopic.aspects) ? plainTopic.aspects.map(aspect => ({
       caption: String(aspect.caption || ''),
@@ -70,21 +79,13 @@ export async function createTopic(title: string) {
 
     // Connect to MongoDB
     await connectDB();
-    const db = mongoose.connection.db;
-    const collection = db.collection('topics');
+    const TopicModel = Topic as Model<TopicDocument>;
 
-    try {
-      const result = await collection.insertOne(topicData);
-      const savedTopic = await collection.findOne({ title });
-      return savedTopic;
-    } catch (saveError) {
-      console.error('Error saving topic to MongoDB:', saveError);
-      if (saveError instanceof Error) {
-        console.error('Save error details:', saveError.message);
-        console.error('Save error stack:', saveError.stack);
-      }
-      throw saveError;
-    }
+    // Create new topic (slug will be generated automatically)
+    const topic = new TopicModel(topicData);
+    await topic.save();
+
+    return getTopic(topic.slug);
   } catch (error) {
     console.error('Error in createTopic:', error);
     if (error instanceof Error) {

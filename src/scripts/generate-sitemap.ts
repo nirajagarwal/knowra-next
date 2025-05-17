@@ -15,7 +15,7 @@ async function generateSitemap() {
     const topics = await TopicModel.find().select('title').lean();
 
     // Base URL - replace with your actual domain
-    const baseUrl = 'https://knowra-next.vercel.app';
+    const baseUrl = 'https://knowra.ai';
 
     // Generate sitemap XML
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

@@ -60,6 +60,11 @@ const topicSchema = new Schema({
     unique: true,
     index: true,
   },
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   tldr: {
     type: String,
     required: true,
@@ -86,8 +91,34 @@ const topicSchema = new Schema({
   },
 });
 
-// Update the updatedAt timestamp before saving
-topicSchema.pre('save', function(next) {
+// Utility function to generate slug
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+// Utility function to make slug unique
+async function makeSlugUnique(slug: string, Topic: any): Promise<string> {
+  const baseSlug = slug;
+  let currentSlug = slug;
+  let count = 1;
+  
+  while (await Topic.findOne({ slug: currentSlug })) {
+    currentSlug = `${baseSlug}-${count}`;
+    count++;
+  }
+  
+  return currentSlug;
+}
+
+// Pre-save hook to generate and ensure unique slug
+topicSchema.pre('save', async function(next) {
+  if (this.isModified('title')) {
+    const baseSlug = generateSlug(this.title);
+    this.slug = await makeSlugUnique(baseSlug, this.constructor);
+  }
   this.updatedAt = new Date();
   next();
 });

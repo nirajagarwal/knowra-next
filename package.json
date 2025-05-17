@@ -10,7 +10,8 @@
     "populate-db": "tsx src/scripts/populate-db.ts",
     "test-llm": "tsx src/scripts/test-llm.ts",
     "generate-sitemap": "tsx src/scripts/generate-sitemap.ts",
-    "clear-search-results": "tsx src/scripts/clear-search-results.ts"
+    "clear-search-results": "tsx src/scripts/clear-search-results.ts",
+    "generate-featured": "ts-node -P scripts/tsconfig.json scripts/generate-featured-topics.ts"
   },
   "keywords": [],
   "author": "",

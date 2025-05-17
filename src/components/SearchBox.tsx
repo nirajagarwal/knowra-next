@@ -1,48 +1,62 @@
 'use client';
 
-import { useState } from 'react';
-import { TextField, Autocomplete, IconButton, Box } from '@mui/material';
+import { useState, useEffect, useRef } from 'react';
+import { TextField, Autocomplete, IconButton, Box, InputAdornment, CircularProgress, Paper, List, ListItem, ListItemText } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { useRouter } from 'next/navigation';
 import { generateTopicContent } from '@/lib/gemini';
 import Spinner from './Spinner';
 
+interface SearchSuggestion {
+  title: string;
+  slug: string;
+}
+
 export default function SearchBox() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchRef = useRef<HTMLDivElement>(null);
 
-  const handleSearch = async (value: string) => {
-    setSearchQuery(value);
-    if (value.length > 2) {
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!searchQuery.trim()) {
+        setSuggestions([]);
+        return;
+      }
+
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(value)}`);
+        const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
         const data = await response.json();
-        setSuggestions(data.suggestions);
+        setSuggestions(data.suggestions || []);
       } catch (error) {
         console.error('Error fetching suggestions:', error);
+        setSuggestions([]);
       }
-    } else {
-      setSuggestions([]);
-    }
-  };
+    };
 
-  const handleTopicSelect = async (topic: string) => {
-    if (!topic) return;
+    const debounceTimer = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  const handleTopicSelect = async (suggestion: SearchSuggestion) => {
+    if (!suggestion) return;
     
     setIsLoading(true);
     try {
       // First check if the topic exists
-      const response = await fetch(`/api/search?q=${encodeURIComponent(topic)}`);
+      const response = await fetch(`/api/search?q=${encodeURIComponent(suggestion.title)}`);
       const data = await response.json();
       
-      if (data.suggestions.includes(topic)) {
-        // Topic exists, navigate to it
-        router.push(`/${encodeURIComponent(topic)}`);
+      const existingSuggestion = data.suggestions.find((s: SearchSuggestion) => s.title === suggestion.title);
+      
+      if (existingSuggestion) {
+        // Topic exists, navigate to it using the slug
+        router.push(`/${existingSuggestion.slug}`);
       } else {
         // Topic doesn't exist, generate content and create it
-        const content = await generateTopicContent(topic);
+        const content = await generateTopicContent(suggestion.title);
         
         const createResponse = await fetch('/api/topics', {
           method: 'POST',
@@ -50,7 +64,7 @@ export default function SearchBox() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            title: topic,
+            title: suggestion.title,
             tldr: content.tldr,
             aspects: content.aspects,
             related: content.related || [],
@@ -61,84 +75,65 @@ export default function SearchBox() {
           throw new Error('Failed to create topic');
         }
 
-        // Wait for the topic to be created and indexed
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Verify the topic exists before navigating
-        const verifyResponse = await fetch(`/api/search?q=${encodeURIComponent(topic)}`);
-        const verifyData = await verifyResponse.json();
-        
-        if (verifyData.suggestions.includes(topic)) {
-          router.push(`/${encodeURIComponent(topic)}`);
-        } else {
-          throw new Error('Topic creation verification failed');
-        }
+        const newTopic = await createResponse.json();
+        router.push(`/${newTopic.slug}`);
       }
     } catch (error) {
       console.error('Error handling topic selection:', error);
     } finally {
       setIsLoading(false);
+      setSearchQuery('');
+      setSuggestions([]);
     }
   };
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-      <Autocomplete
-        freeSolo
-        options={suggestions}
-        inputValue={searchQuery}
-        onInputChange={(_, value) => handleSearch(value)}
-        onChange={(_, value) => value && handleTopicSelect(value)}
-        sx={{ width: '100%' }}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            fullWidth
-            variant="outlined"
-            placeholder="Search for a topic..."
-            size="small"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '4px 0 0 4px',
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderWidth: '1px'
-                },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderRight: 'none'
-                }
-              },
-            }}
-          />
-        )}
-      />
-      <IconButton
-        onClick={() => searchQuery && handleTopicSelect(searchQuery)}
-        disabled={isLoading}
-        sx={{
-          height: '40px',
-          width: '40px',
-          borderRadius: '0 4px 4px 0',
-          backgroundColor: 'primary.main',
-          color: 'white',
-          border: '1px solid',
-          borderColor: 'primary.main',
-          '&:hover': {
-            backgroundColor: 'primary.dark',
-            borderColor: 'primary.dark',
-          },
-          '&.Mui-disabled': {
-            backgroundColor: 'primary.main',
-            borderColor: 'primary.main',
-            opacity: 0.7,
-          },
+    <Box ref={searchRef} sx={{ position: 'relative', width: '100%' }}>
+      <TextField
+        fullWidth
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search topics..."
+        size="small"
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+          endAdornment: isLoading ? (
+            <InputAdornment position="end">
+              <CircularProgress size={20} />
+            </InputAdornment>
+          ) : null
         }}
-      >
-        {isLoading ? (
-          <Spinner size={20} color="inherit" />
-        ) : (
-          <SearchIcon />
-        )}
-      </IconButton>
+      />
+      {suggestions.length > 0 && (
+        <Paper
+          sx={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            mt: 1,
+            maxHeight: '300px',
+            overflow: 'auto'
+          }}
+        >
+          <List>
+            {suggestions.map((suggestion, index) => (
+              <ListItem
+                key={index}
+                button
+                onClick={() => handleTopicSelect(suggestion)}
+              >
+                <ListItemText primary={suggestion.title} />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
+      )}
     </Box>
   );
 } 
