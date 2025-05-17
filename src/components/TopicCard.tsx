@@ -47,6 +47,7 @@ interface DetailedContent {
 }
 
 const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }: TopicCardProps) {
+
   const router = useRouter();
   const [expanded, setExpanded] = useState<string[]>(['tldr']);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -59,6 +60,8 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
   const [overlayLoading, setOverlayLoading] = useState(false);
 
   const { results, isLoading: isSearchLoading, fetchSectionResults } = useSearchResults(title);
+
+
 
   const handleChange = useCallback((panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(prev => 
@@ -89,7 +92,6 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
       }
 
       const content: DetailedContent = await response.json();
-      console.log('Fetched detailed content for aspect item:', content);
       setDetailedContent(content);
     } catch (error) {
       console.error('Error generating detailed content:', error);
@@ -104,8 +106,7 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
     setDetailedContent(null);
   }, []);
 
-  const handleRelatedTopicClick = async (topic: string, e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleRelatedTopicClick = async (topic: string) => {
     setLoadingTopics(prev => [...prev, topic]);
     
     try {
@@ -375,36 +376,40 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                   <Grid container spacing={1}>
                     {related.map((topic) => (
                       <Grid item xs={6} sm={4} key={topic}>
-                        <Link
-                          href={`/${encodeURIComponent(topic)}`}
-                          onClick={(e) => handleRelatedTopicClick(topic, e)}
-                          style={{ textDecoration: 'none' }}
-                        >
-                          <Box sx={{ 
+                        <Box
+                          component="button"
+                          onClick={() => handleRelatedTopicClick(topic)}
+                          sx={{ 
                             display: 'flex', 
                             alignItems: 'center',
                             gap: 1,
                             color: 'primary.main',
                             fontSize: '0.875rem',
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            width: '100%',
+                            textAlign: 'left',
                             '&:hover': {
                               color: 'primary.dark',
                             }
-                          }}>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}
-                            >
-                              {topic}
-                            </Typography>
-                            {loadingTopics.includes(topic) && (
-                              <Spinner size={12} />
-                            )}
-                          </Box>
-                        </Link>
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {topic}
+                          </Typography>
+                          {loadingTopics.includes(topic) && (
+                            <Spinner size={12} />
+                          )}
+                        </Box>
                       </Grid>
                     ))}
                   </Grid>
@@ -604,6 +609,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                     sx={{ 
                       color: 'primary.main',
                       textDecoration: 'none',
+                      fontSize: '0.95rem',
+                      fontWeight: 'normal',
+                      fontFamily: 'inherit',
                       '&:hover': { textDecoration: 'underline' }
                     }}
                   >
@@ -618,6 +626,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                     sx={{ 
                       color: 'primary.main',
                       textDecoration: 'none',
+                      fontSize: '0.95rem',
+                      fontWeight: 'normal',
+                      fontFamily: 'inherit',
                       '&:hover': { textDecoration: 'underline' }
                     }}
                   >
@@ -632,6 +643,9 @@ const TopicCard = memo(function TopicCard({ title, tldr, aspects, related = [] }
                     sx={{ 
                       color: 'primary.main',
                       textDecoration: 'none',
+                      fontSize: '0.95rem',
+                      fontWeight: 'normal',
+                      fontFamily: 'inherit',
                       '&:hover': { textDecoration: 'underline' }
                     }}
                   >

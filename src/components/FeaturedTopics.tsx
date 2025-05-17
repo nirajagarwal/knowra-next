@@ -41,14 +41,15 @@ export default function FeaturedTopics({ initialTopics, allTopics }: FeaturedTop
   return (
     <Box sx={{ mt: 6 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h4" component="h2">
+        <Typography variant="h5" component="h2">
           Featured Topics
         </Typography>
         <Button
           variant="outlined"
+          size="small"
           startIcon={<RefreshIcon />}
           onClick={handleMoreClick}
-          sx={{ textTransform: 'none' }}
+          sx={{ textTransform: 'none', px: 2 }}
         >
           More
         </Button>

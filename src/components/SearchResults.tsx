@@ -234,7 +234,12 @@ export default function SearchResults({
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <PublicIcon />
-            <Typography>Wikipedia</Typography>
+            <Typography sx={{ 
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              color: 'text.primary',
+              lineHeight: 1.2,
+            }}>Wikipedia</Typography>
           </Box>
         </AccordionSummary>
         <AccordionDetails>
@@ -319,7 +324,12 @@ export default function SearchResults({
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <MenuBookIcon />
-            <Typography>Books</Typography>
+            <Typography sx={{ 
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              color: 'text.primary',
+              lineHeight: 1.2,
+            }}>Books</Typography>
           </Box>
         </AccordionSummary>
         <AccordionDetails>
@@ -350,7 +360,12 @@ export default function SearchResults({
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <VideoLibraryIcon />
-            <Typography>Videos {videos.length > 0 ? `(${videos.length})` : ''}</Typography>
+            <Typography sx={{ 
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              color: 'text.primary',
+              lineHeight: 1.2,
+            }}>Videos {videos.length > 0 ? `(${videos.length})` : ''}</Typography>
           </Box>
         </AccordionSummary>
         <AccordionDetails>

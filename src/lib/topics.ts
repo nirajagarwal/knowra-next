@@ -18,6 +18,8 @@ interface TopicDocument extends Document {
 }
 
 export async function getTopic(slugOrTitle: string) {
+  const startTime = performance.now();
+  
   await connectDB();
   const decodedValue = decodeURIComponent(slugOrTitle);
   
@@ -28,18 +30,52 @@ export async function getTopic(slugOrTitle: string) {
   
   // If not found by slug, try to find by title (for backward compatibility)
   if (!topic) {
-    topic = await TopicModel.findOne({ title: decodedValue });
+    topic = await TopicModel.findOne({ 
+      title: new RegExp(`^${decodedValue}$`, 'i') // Case-insensitive exact match
+    });
+    
+    // If found by title but slug is missing, generate one
+    if (topic && (!topic.slug || topic.slug === 'undefined' || topic.slug === '')) {
+      // Generate a slug
+      const baseSlug = topic.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+        
+      // Make it unique
+      let uniqueSlug = baseSlug;
+      let count = 1;
+      
+      while (await TopicModel.findOne({ 
+        slug: uniqueSlug,
+        _id: { $ne: topic._id } // Exclude the current topic
+      })) {
+        uniqueSlug = `${baseSlug}-${count}`;
+        count++;
+      }
+      
+      // Update the topic with the new slug
+      await TopicModel.updateOne(
+        { _id: topic._id },
+        { $set: { slug: uniqueSlug } }
+      );
+      
+      // Reload the topic with the updated slug
+      topic = await TopicModel.findById(topic._id);
+    }
   }
   
-  if (!topic) return null;
+  if (!topic) {
+    return null;
+  }
 
   // Convert to plain object and ensure all data is serializable
   const plainTopic = JSON.parse(JSON.stringify(topic));
 
-  // Ensure the data structure is valid
-  return {
+  // Ensure the data structure is valid and generate a slug if missing
+  const returnedTopic = {
     title: String(plainTopic.title || ''),
-    slug: String(plainTopic.slug || ''),
+    slug: String(plainTopic.slug || plainTopic.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')),
     tldr: String(plainTopic.tldr || ''),
     aspects: Array.isArray(plainTopic.aspects) ? plainTopic.aspects.map(aspect => ({
       caption: String(aspect.caption || ''),
@@ -49,6 +85,8 @@ export async function getTopic(slugOrTitle: string) {
     related: Array.isArray(plainTopic.related) ? 
       plainTopic.related.map(item => String(item || '')) : []
   };
+
+  return returnedTopic;
 }
 
 export async function createTopic(title: string) {
@@ -61,6 +99,8 @@ export async function createTopic(title: string) {
 
     // Convert to plain object and ensure all data is serializable
     const plainContent = JSON.parse(JSON.stringify(content));
+
+
 
     // Prepare the data
     const topicData = {
@@ -77,6 +117,8 @@ export async function createTopic(title: string) {
       updatedAt: new Date()
     };
 
+
+
     // Connect to MongoDB
     await connectDB();
     const TopicModel = Topic as Model<TopicDocument>;
@@ -87,11 +129,6 @@ export async function createTopic(title: string) {
 
     return getTopic(topic.slug);
   } catch (error) {
-    console.error('Error in createTopic:', error);
-    if (error instanceof Error) {
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
-    }
     throw error;
   }
 } 

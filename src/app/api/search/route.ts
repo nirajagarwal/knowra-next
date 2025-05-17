@@ -10,6 +10,7 @@ interface TopicResult {
 
 export async function GET(request: Request) {
   try {
+    const startTime = performance.now();
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
 
@@ -18,19 +19,48 @@ export async function GET(request: Request) {
     }
 
     await connectDB();
-
-    // Perform fuzzy search on topic titles
     const TopicModel = Topic as Model<any>;
-    const topics = await TopicModel.find({
-      title: { $regex: query, $options: 'i' }
+
+    console.log(`[API] Searching for topics matching: "${query}"`);
+
+    // First check for exact matches by title (case insensitive)
+    const exactMatches = await TopicModel.find({
+      title: new RegExp(`^${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i')
     })
     .select('title slug')
-    .limit(10);
+    .limit(3);
 
-    const suggestions = topics.map(topic => ({
-      title: topic.title,
-      slug: topic.slug
-    }));
+    console.log(`[API] Found ${exactMatches.length} exact matches`);
+
+    // Then do a fuzzy search for partial matches
+    const fuzzyMatches = await TopicModel.find({
+      title: new RegExp(query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i'),
+      _id: { $nin: exactMatches.map(m => m._id) } // exclude exact matches
+    })
+    .select('title slug')
+    .limit(10 - exactMatches.length);
+
+    console.log(`[API] Found ${fuzzyMatches.length} fuzzy matches`);
+
+    // Combine exact and fuzzy matches, with exact matches first
+    const allTopics = [...exactMatches, ...fuzzyMatches];
+
+    // Fix any topics with missing slugs
+    const suggestions = allTopics.map(topic => {
+      if (!topic.slug || topic.slug === 'undefined') {
+        return {
+          title: topic.title,
+          slug: topic.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+        };
+      }
+      return {
+        title: topic.title,
+        slug: topic.slug
+      };
+    });
+
+    const endTime = performance.now();
+    console.log(`[API] Search completed in ${(endTime - startTime).toFixed(2)}ms, returning ${suggestions.length} suggestions`);
 
     return NextResponse.json({ suggestions });
   } catch (error) {

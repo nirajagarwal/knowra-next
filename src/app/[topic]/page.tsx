@@ -2,11 +2,47 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import TopicPageClient from './TopicPageClient';
 import { getTopic } from '@/lib/topics';
+import connectDB from '@/lib/mongodb';
+import Topic from '@/models/Topic';
+import { Model } from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 
 interface TopicPageProps {
   params: {
     topic: string;
   };
+}
+
+// Allow dynamic rendering in development, but use ISR in production
+export const dynamic = process.env.NODE_ENV === 'development' ? 'force-dynamic' : 'auto';
+export const revalidate = 3600; // Revalidate every hour in production
+
+// Pre-generate pages for featured topics only
+export async function generateStaticParams() {
+  try {
+    // Read the featured topics file
+    const filePath = path.join(process.cwd(), 'featured_topics.txt');
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const featuredTopicTitles = content.split('\n').filter(Boolean);
+    
+    await connectDB();
+    const TopicModel = Topic as Model<any>;
+    
+    // Only generate static paths for featured topics
+    const topics = await TopicModel.find({
+      title: { $in: featuredTopicTitles }
+    }).select('slug');
+    
+    const params = topics.map(topic => ({
+      topic: topic.slug
+    }));
+    
+    return params;
+  } catch (error) {
+    console.error('Error generating static params:', error);
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: TopicPageProps): Promise<Metadata> {
@@ -73,11 +109,12 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
 }
 
 export default async function TopicPage({ params }: TopicPageProps) {
+  // Get the topic data
   const topic = await getTopic(params.topic);
-
+  
   if (!topic) {
     notFound();
   }
-
+  
   return <TopicPageClient topic={topic} />;
 } 

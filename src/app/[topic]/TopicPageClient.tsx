@@ -21,6 +21,8 @@ interface TopicPageClientProps {
 export default function TopicPageClient({ topic }: TopicPageClientProps) {
   const router = useRouter();
 
+
+
   if (!topic || typeof topic !== 'object') {
     return (
       <Container maxWidth="lg" sx={{ px: 1, height: '100vh', display: 'flex', flexDirection: 'column', mt: 0.5 }}>

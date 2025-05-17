@@ -11,7 +11,8 @@
     "test-llm": "tsx src/scripts/test-llm.ts",
     "generate-sitemap": "tsx src/scripts/generate-sitemap.ts",
     "clear-search-results": "tsx src/scripts/clear-search-results.ts",
-    "generate-featured": "ts-node -P scripts/tsconfig.json scripts/generate-featured-topics.ts"
+    "generate-featured": "ts-node -P scripts/tsconfig.json scripts/generate-featured-topics.ts",
+    "generate-missing-slugs": "tsx src/scripts/generate-missing-slugs.ts"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +21,6 @@
   "dependencies": {
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.0",
-    "@google/genai": "^0.13.0",
     "@google/generative-ai": "^0.24.1",
     "@mui/icons-material": "^5.15.12",
     "@mui/material": "^5.15.12",

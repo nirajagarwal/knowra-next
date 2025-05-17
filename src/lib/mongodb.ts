@@ -25,9 +25,7 @@ async function connectDB() {
       bufferCommands: false,
     };
 
-    console.log('Connecting to MongoDB:', MONGODB_URI);
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log('Connected to MongoDB database:', mongoose.connection.db.databaseName);
       return mongoose;
     });
   }

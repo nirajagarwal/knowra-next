@@ -143,7 +143,7 @@ export async function generateTopicContent(topic: string) {
   });
 
   const prompt = `Generate a learning guide for broad and deep understanding of various aspects of the topic "${topic}". 
-  Also provide a list of related words, entities, or concepts. Use this exact JSON format:
+  Also provide a list of up to 12 closely related words, entities, or concepts to expand learning. Use this exact JSON format:
 {
   "tldr": "Three sentences with the main things to know about the topic",
   "aspects": [
@@ -152,7 +152,7 @@ export async function generateTopicContent(topic: string) {
       "thingsToKnow": ["Knowledge nugget 1", "Knowledge nugget 2", "Knowledge nugget 3", ...],
     }
   ],
-  "related": ["related topic 1", "related topic 2", "related topic 3", "..."]
+  "related": ["related topic 1", "related topic 2", "related entity 3", "..."]
 }
 Additional instructions: 
 1. Aim to select the aspects and thingsToKnow so that the points are mutually exclusive and collectively exhaustive. 
@@ -179,6 +179,8 @@ Additional instructions:
 
       // Handle array response by taking the first item
       const content = Array.isArray(parsed) ? parsed[0] : parsed;
+
+
 
       // Basic validation
       if (!content.tldr || !Array.isArray(content.aspects)) {
